@@ -1,0 +1,7 @@
+<!-- This launch file demonstrates the use of xtion ranger with rtabmap -->
+<launch>
+	<node pkg="ranger_extra" name="keyboard_talker" type="keyboard_talker.py" output="screen">
+	</node>
+	<node pkg="ranger_extra" name="mapper" 			type="mapper.py" output="screen">
+	</node>
+</launch>

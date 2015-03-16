@@ -1,0 +1,24 @@
+<package>
+  <name>ranger_extra</name>
+  <version>0.0.0</version>
+  <description>
+      Additional staff for ranger wrapper ranger_ros
+  </description>
+  <maintainer email="donatas.kozlovskis@epfl.ch">Donatas Kozlovskis</maintainer>
+  <license>BSD</license>
+
+  <author>Donatas Kozlovskis</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>tf</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>roslaunch</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>tf</run_depend>
+
+</package>
