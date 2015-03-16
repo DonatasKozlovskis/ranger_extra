@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 #
 # simple node to publish any pressed keyboard button
 # except CTRL^C which kills the node
