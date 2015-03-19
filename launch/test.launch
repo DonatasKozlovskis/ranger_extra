@@ -2,10 +2,10 @@
 <launch>
 
 	<!-- Xtion OpenNI on ranger -->
-	<!-- laser simulation is included in 3dsensor.launch -->
-	<include file="$(find ranger_ros)/launch/3dsensor.launch"/>
-	<include file="$(find ranger_ros)/launch/3dprocess.launch"/>
-
+	<!-- laser simulation is included in 3dsensor.launch 
+	<include file="$(find ranger_extra)/launch/3dsensor.launch"/>
+	<include file="$(find ranger_extra)/launch/3dprocess.launch"/>
+	-->
 	<!-- Visual SLAM -->
 	<!-- args: "delete_db_on_start" and "udebug" -->
 	<group ns="rtabmap">
@@ -64,5 +64,5 @@
                 <param name="scan_voxel_size" type="str" value="0.01" />
         </node>
 	</group>
-
+	
 </launch>
