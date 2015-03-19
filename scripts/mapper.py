@@ -22,9 +22,11 @@ import subprocess
 
 # Transformations
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
+
 # ROS messages
 from std_srvs.srv import Empty
 from std_msgs.msg import String
+from visualization_msgs.msg import Marker
 
 ###############################################
 #
@@ -38,26 +40,26 @@ class Mapper():
 
     def __init__(self):
     
-        # Get the relative parameters from command line or launch file.
-        self.path_map = rospy.get_param("path_map", "maps")
-        self.path_waypoint =  rospy.get_param("path_waypoint", "maps")
+        # Get the private namespace parameters from launch file.
+        self.path_map = rospy.get_param('~path_map', 'maps')
+        self.path_waypoint =  rospy.get_param('~path_waypoint', 'maps')
         
-        self.file_map = rospy.get_param("file_map", "map")
-        self.file_waypoint = rospy.get_param("file_waypoint", "waypoint.txt")
+        self.file_map = rospy.get_param('~file_map', 'map')
+        self.file_waypoint = rospy.get_param('~file_waypoint', 'waypoints.txt')
         
         self.full_path_waypoint = os.path.join(self.path_waypoint, self.file_waypoint)
         
         # ensure that directories exist, if not create
-        dir = os.path.dirname(self.path_map)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-
-        dir = os.path.dirname(self.path_waypoint)
-        if not os.path.exists(dir):
-            os.makedirs(dir)          
+        if not os.path.isdir(self.path_map):
+            os.makedirs(self.path_map)
+            
+        if not os.path.isdir(self.path_waypoint):
+            os.makedirs(self.path_waypoint) 
                             
-        # Subscriber
+        # Subscriber for keyboards
         rospy.Subscriber("keypress_button", String, self.key_callback)
+        # Publisher for visualization markers for waypoints
+        self.marker_pub = rospy.Publisher("visualization_marker", Marker, queue_size=5)
 
         # need the transform from  /map to /base_footprint
         self.listener = tf.TransformListener()
@@ -130,7 +132,7 @@ class Mapper():
         
         if self.tf != None: # do we have a valid transform to use    
             #save in the waypoint file and create a visualization marker
-            #self.marker_pub.publish(self.make_arrow_marker(self.tf, self.waypoint_num))
+            self.marker_pub.publish(self.make_arrow_marker(self.tf, self.waypoint_num))
                     
             rospy.loginfo("Saving waypoint %d: %s, %s" %(self.waypoint_num, str(self.tf[0]), str(self.tf[1])))
 
@@ -162,9 +164,37 @@ class Mapper():
         rospy.loginfo( "Save Map returned sts %d" % sts)
         
     #==========================================================================
-    def make_marker(self):
+    def make_arrow_marker(self,tf,num): 
         # method to create RVIZ marker
-        rospy.loginfo("make_marker Not implemented")
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.id = num
+        
+        marker.type= marker.ARROW
+        marker.action = marker.ADD
+        
+        marker.pose.position.x = tf[0][0]
+        marker.pose.position.y = tf[0][1]
+        marker.pose.position.z = 0
+
+        marker.pose.orientation.x = 0.70711;
+        marker.pose.orientation.y = 0;
+        marker.pose.orientation.z = 0.70711;
+        marker.pose.orientation.w = 0;
+           
+        marker.scale.x = 0.8
+        marker.scale.y = 0.05
+        marker.scale.z = 0.05
+        
+        marker.color.r = 0.0
+        marker.color.g = 0.0
+        marker.color.b = 1.0
+        marker.color.a = 1.0
+        
+        marker.lifetime = rospy.Duration()
+        
+        return marker
 
 #==============================================================================
 # main function
@@ -176,7 +206,7 @@ if __name__=="__main__":
 
     try:
         # ROS initializzation
-        rospy.init_node('mapper')
+        rospy.init_node("mapper")
 
         mapper = Mapper()
         sts = mapper.run()
