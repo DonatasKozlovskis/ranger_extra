@@ -9,8 +9,8 @@
 
   <arg name="pi/2" value="1.5707963267948966" />
   <arg name="optical_rotate" value="0 0 0 -$(arg pi/2) 0 -$(arg pi/2)" />
-  <node pkg="tf" type="static_transform_publisher" name="camera_base_link1" args="$(arg optical_rotate) rgb_camera_link rgb_camera_link_optical 100" />  
-  <node pkg="tf" type="static_transform_publisher" name="camera_base_link2" args="$(arg optical_rotate) depth_camera_link depth_camera_link_optical 100" />
+  <node pkg="tf" type="static_transform_publisher" name="camera_base_link1" args="$(arg optical_rotate) rgb_camera_link rgb_camera_link_optical 20" />  
+  <node pkg="tf" type="static_transform_publisher" name="camera_base_link2" args="$(arg optical_rotate) depth_camera_link depth_camera_link_optical 20" />
 
 
   <!-- By default, calibrations are stored to file://${ROS_HOME}/camera_info/${NAME}.yaml,
