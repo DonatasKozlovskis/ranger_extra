@@ -25,7 +25,8 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 # ROS messages
 from std_srvs.srv import Empty
-from std_msgs.msg import String
+from std_msgs.msg import Header
+
 from visualization_msgs.msg import Marker
 
 ###############################################
@@ -39,8 +40,11 @@ class Mapper():
     #   path_waypoint: path where the waypoint file will be saved
 
     def __init__(self):
-    
+        '''
+        constructor
+        '''
         # Get the private namespace parameters from launch file.
+        # folder locations
         self.path_map = rospy.get_param('~path_map', 'maps')
         self.path_waypoint =  rospy.get_param('~path_waypoint', 'maps')
         
@@ -49,15 +53,22 @@ class Mapper():
         
         self.full_path_waypoint = os.path.join(self.path_waypoint, self.file_waypoint)
         
-        # ensure that directories exist, if not create
+        # ensure given directories exist, if not create
         if not os.path.isdir(self.path_map):
             os.makedirs(self.path_map)
             
         if not os.path.isdir(self.path_waypoint):
             os.makedirs(self.path_waypoint) 
+        # delete old waypoint file if exist
+        try:
+            os.remove(self.full_path_waypoint)
+        except OSError:
+            pass            
+            
                             
         # Subscriber for keyboards
-        rospy.Subscriber("keypress_button", String, self.key_callback)
+        rospy.Subscriber("mapper_control", Header, self.control_callback)
+        
         # Publisher for visualization markers for waypoints
         self.marker_pub = rospy.Publisher("visualization_marker", Marker, queue_size=5)
 
@@ -68,6 +79,8 @@ class Mapper():
         
         self.tf = None          # not seen a transform yet
         self.waypoint_num = 0   # waypoint enumerator
+        
+        self.saved_frames = {};
                 
         # give tf a chance to queue up some transforms
         rospy.sleep(3)
@@ -77,13 +90,15 @@ class Mapper():
         '''
         main run loop
         '''
+        rospy.loginfo("Map path: %s",       self.path_map);
+        rospy.loginfo("Waypoint path: %s",  self.path_waypoint);
         rospy.loginfo("Mapper Ready")
 
         while not rospy.is_shutdown():
             transform_ok = False
             try:
                 # check for transform
-                (trans, rot) = self.listener.lookupTransform('map', 'base_link', rospy.Time(0))
+                (trans, rot) = self.listener.lookupTransform('odom', 'base_link', rospy.Time(0))
 
                 # clean up pose, force to be on and parallel to map plane
                 trans = (trans[0], trans[1], 0) # z=0
@@ -107,44 +122,49 @@ class Mapper():
 
     
     #==========================================================================
-    def key_callback(self,msg):
+    def control_callback(self, msg):
         '''
         function to handle keyboar buttons
         '''
-        key = str(msg.data)
+#        uint32 seq
+#        string frame_id
+        command_key = msg.seq
+        frame_name    = msg.frame_id
         
-        rospy.loginfo("Heard keypress %s", key)
+#        rospy.loginfo("Heard keypress %d", command_key)
                     
-        if key == "a":            
-            rospy.loginfo("Heard keypress %s to add waypoint!", key)
-            rospy.loginfo("Adding waypoint to %s", self.full_path_waypoint)
+        if command_key == 1:            
+            self.add_waypoint(frame_name);
             
-        if key == "\x13": #CTRL+ S button code           
-            rospy.loginfo("Heard keypress CTRL+S to save map!")
-            rospy.loginfo("Saving map to %s", self.path_map)
+        if command_key == 2:   
+            rospy.loginfo("Deleting waypoint: %s not implemented", frame_name);
+            
+        if command_key == 3:
+            rospy.loginfo("Saving map and switching to localisation mode");
+            self.save_map();
 
-            
     #==========================================================================        
-    def save_waypoint(self):
+    def add_waypoint(self, frame_name):
         '''
-        function to save waypoint to file
+        function to add waypoint to file
         '''
         
         if self.tf != None: # do we have a valid transform to use    
             #save in the waypoint file and create a visualization marker
-            self.marker_pub.publish(self.make_arrow_marker(self.tf, self.waypoint_num))
-                    
-            rospy.loginfo("Saving waypoint %d: %s, %s" %(self.waypoint_num, str(self.tf[0]), str(self.tf[1])))
+         
+            rospy.loginfo("Saving waypoint %s: %s, %s" %( str(frame_name), str(self.tf[0]), str(self.tf[1])  ) )
 
             # save waypoint pose in file
             with open(self.full_path_waypoint,'a+') as wpfh:
-                wpfh.write("%d: %s\n" % (self.waypoint_num, str(self.tf)))
+                wpfh.write("%s: %s\n" % (frame_name, str(self.tf)))
 
-            rospy.loginfo("Waypoint %d saved." % self.waypoint_num)
-
+            rospy.loginfo("Waypoint %s saved." % frame_name)
+            
+            self.marker_pub.publish( self.make_marker_arrow() )
+            self.marker_pub.publish( self.make_marker_text(frame_name) )   
+            
             # increment waypoint number for next waypoint
             self.waypoint_num = self.waypoint_num + 1
-        
         else:
             rospy.logwarn("Can't save Waypoint, No Transform Yet")
             
@@ -155,37 +175,42 @@ class Mapper():
         '''
         
         # Put rtabmap in localization mode so it does not continue to update map after we save it
-        rtabmap_localization_mode = rospy.ServiceProxy('rtabmap/set_mode_localization',Empty())
-        rtabmap_localization_mode()
+        try:
+            rtabmap_localization_mode = rospy.ServiceProxy('rtabmap/set_mode_localization',Empty())
+            rtabmap_localization_mode()
+            
+            # save map file using map_server
+            sts = subprocess.call('cd "%s"; rosrun map_server map_saver -f "%s"' % (self.path_map, self.file_map), shell=True)
+            rospy.loginfo( "Save Map returned sts %d" % sts)
+            
+        except Exception as ex:
+            rospy.loginfo("Save map crashed: %s" % str(ex))
         
-        # save map file using map_server
-        sts = subprocess.call('cd "%s"; rosrun map_server map_saver -f "%s"' % (self.path_map, self.file_map), shell=True)
 
-        rospy.loginfo( "Save Map returned sts %d" % sts)
         
     #==========================================================================
-    def make_arrow_marker(self,tf,num): 
+    def make_marker_arrow(self): 
         # method to create RVIZ marker
         marker = Marker()
         marker.header.frame_id = "map"
         marker.header.stamp = rospy.Time.now()
-        marker.id = num
+        marker.id = self.waypoint_num
         
         marker.type= marker.ARROW
         marker.action = marker.ADD
         
-        marker.pose.position.x = tf[0][0]
-        marker.pose.position.y = tf[0][1]
-        marker.pose.position.z = 0
+        marker.pose.position.x = self.tf[0][0]
+        marker.pose.position.y = self.tf[0][1]
+        marker.pose.position.z = 0.3
 
         marker.pose.orientation.x = 0.70711;
         marker.pose.orientation.y = 0;
-        marker.pose.orientation.z = 0.70711;
+        marker.pose.orientation.z = -0.70711;
         marker.pose.orientation.w = 0;
            
-        marker.scale.x = 0.8
-        marker.scale.y = 0.05
-        marker.scale.z = 0.05
+        marker.scale.x = 0.3
+        marker.scale.y = 0.02
+        marker.scale.z = 0.02
         
         marker.color.r = 0.0
         marker.color.g = 0.0
@@ -196,25 +221,51 @@ class Mapper():
         
         return marker
 
+#==========================================================================
+    def make_marker_text(self, text): 
+        # method to create RVIZ marker
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.id = self.waypoint_num + 1000;
+        
+        marker.type= marker.TEXT_VIEW_FACING
+        marker.action = marker.ADD
+        marker.text = text
+        
+        marker.pose.position.x = self.tf[0][0]
+        marker.pose.position.y = self.tf[0][1]
+        marker.pose.position.z = 0.35
+        
+        marker.pose.orientation.x = 0;
+        marker.pose.orientation.y = 0;
+        marker.pose.orientation.z = 0;
+        marker.pose.orientation.w = 1.0;
+        marker.scale.z = 0.07
+        
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+        
+        marker.lifetime = rospy.Duration()
+        
+        return marker
 #==============================================================================
 # main function
 if __name__=="__main__":
     
     sts = 0
-    
     rospy.loginfo("Running Mapper")
-
     try:
         # ROS initializzation
         rospy.init_node("mapper")
-
         mapper = Mapper()
         sts = mapper.run()
 
     except Exception as ex:
         rospy.loginfo("Mapper Crashed with exception: %s" % str(ex))
         sts = -1
-        
     finally:
         rospy.loginfo("Mapper Finished")
         sys.exit(sts)
