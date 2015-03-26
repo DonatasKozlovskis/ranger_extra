@@ -8,9 +8,10 @@ import sys, select, termios, tty
 from std_msgs.msg import String
 
 def keyboard_talker():
-    pub = rospy.Publisher('keypress_button', String, queue_size=10)
-    rospy.init_node('keyboard_talker', anonymous=True)
+    pub = rospy.Publisher('keypress_talker', String, queue_size=10)
+    rospy.init_node('keyboard_publisher', anonymous=True)
     rate = rospy.Rate(10) # 10hz
+    rospy.loginfo("Keyboard publisher initialized")
     while not rospy.is_shutdown():
         key = getKey();
         if (key == '\x03'):
