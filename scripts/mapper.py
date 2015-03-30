@@ -55,19 +55,15 @@ class Mapper():
         self.file_name_map = rospy.get_param('~file_map', 'map')
         self.file_name_wp = rospy.get_param('~file_waypoint', 'waypoints')
         
-        self.full_path_waypoint = os.path.join(self.path_wp, self.file_name_wp)
-        
+        self.full_path_wp = os.path.join(self.path_wp, self.file_name_wp)
+
         # ensure given directories exist, if not create
         if not os.path.isdir(self.path_map):
             os.makedirs(self.path_map)
             
         if not os.path.isdir(self.path_wp):
             os.makedirs(self.path_wp) 
-        # delete old waypoint file if exist
-        try:
-            os.remove(self.full_path_waypoint)
-        except OSError:
-            pass            
+                
         # output file format
         self.waypoints = [] # list for saving all waypoints in given dict structure
         self.wp_fieldnames = ('num_id', 'wp_name', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw')                            
@@ -147,6 +143,8 @@ class Mapper():
             self.delete_waypoint(frame_name);
             
         if command_key == 3:
+            rospy.loginfo("Saving waypoints to file");
+            self.save_waypoints();
             rospy.loginfo("Saving map and switching to localisation mode");
             self.save_map();
 
@@ -219,46 +217,6 @@ class Mapper():
         else:
             rospy.logwarn("Waypoints list is empty. There are no waypoints to delete")
   
-            
-        
-   
-    #==========================================================================        
-    def save_map(self):
-        '''
-        function to save map
-        '''
-        
-        # Put rtabmap in localization mode so it does not continue to update map after we save it
-        rtabmap_localization_mode = rospy.ServiceProxy('rtabmap/set_mode_localization',Empty())
-        
-        file_name_map_stamped = self.file_name_map + "_" + str(self.start_time);
-        
-        try:
-            rtabmap_localization_mode()
-            # save map file using map_server
-            sts = subprocess.call('cd "%s"; rosrun map_server map_saver -f "%s"' % (self.path_map, file_name_map_stamped), shell=True)
-            rospy.loginfo( "Save Map returned sts %d" % sts)
-        except Exception as ex:
-            rospy.logwarn("Save map crashed: %s" % str(ex))
-        
-    #==========================================================================        
-    def save_waypoints(self):
-        '''
-        function to save waypoints
-        '''     
-        file_name_wp_stamped = self.file_name_wp + "_" + str(self.start_time);
-
-        # save waypoints to file
-        with open(file_name_wp_stamped,'a+') as wpfh:
-            writer = csv.DictWriter(wpfh, fieldnames=self.wp_fieldnames, delimiter=';')
-            #write header     
-            writer.writeheader()            
-            
-            for wp in self.waypoints:
-                writer.writerow(wp)            
-        # inform user    
-        rospy.loginfo("Waypoints saved. to file %s" % file_name_wp_stamped)
-        
     #==========================================================================
     def make_marker(self): 
         # method to create base RVIZ marker
@@ -334,6 +292,50 @@ class Mapper():
         marker.lifetime = rospy.Duration()
         
         return marker
+
+    #==========================================================================        
+    def save_map(self):
+        '''
+        function to save map
+        '''
+        
+        # Put rtabmap in localization mode so it does not continue to update map after we save it
+        rtabmap_localization_mode = rospy.ServiceProxy('rtabmap/set_mode_localization',Empty())
+        
+        file_name_map_stamped = self.file_name_map + "_" + str(self.start_time);
+        
+        try:
+            rtabmap_localization_mode()
+            # save map file using map_server
+            sts = subprocess.call('cd "%s"; rosrun map_server map_saver -f "%s"' % (self.path_map, file_name_map_stamped), shell=True)
+            rospy.loginfo( "Save Map returned sts %d" % sts)
+        except Exception as ex:
+            rospy.logwarn("Save map crashed: %s" % str(ex))
+        
+    #==========================================================================        
+    def save_waypoints(self):
+        '''
+        function to save waypoints
+        '''     
+        file_name_wp_stamped = self.full_path_wp + "_" + str(self.start_time);
+        
+        # delete old waypoint file if exist
+        try:
+            os.remove(file_name_wp_stamped)
+        except OSError:
+            pass        
+
+        # save waypoints to file
+        with open(file_name_wp_stamped,'a+') as wpfh:
+            writer = csv.DictWriter(wpfh, fieldnames=self.wp_fieldnames, delimiter=';')
+            #write header     
+            writer.writeheader()            
+            
+            for wp in self.waypoints:
+                writer.writerow(wp)            
+        # inform user    
+        rospy.loginfo("Waypoints saved. to file %s" % file_name_wp_stamped)
+ 
 #==============================================================================
 # main function
 if __name__=="__main__":
