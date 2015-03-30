@@ -77,12 +77,15 @@ class MapperControl():
             self._command_pub.publish(controlMessage)
 
         if key == "d":
+            
             controlMessage = Header()
             #command to delete waypoint;
             #deleting last waypoint
             controlMessage.seq = 2;
             controlMessage.frame_id = 'Frame_' + str(self.keyboard_frame_counter);
             self._command_pub.publish(controlMessage)
+            if (self.keyboard_frame_counter>0):
+                self.keyboard_frame_counter -= 1;
             
         if key == "\x13": #CTRL+ S button code           
             controlMessage = Header()
