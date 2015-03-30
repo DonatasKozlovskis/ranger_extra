@@ -1,0 +1,25 @@
+<!-- -->
+<launch>
+    <!-- not using any localization -> we assume that the /odom frame is always correct -->
+    <!--<node name="map_odom_transform" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 /map /odom 10"/>-->
+
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true">
+        <remap from="/base_scan" to="/scan"/>
+
+        <param name="footprint_padding" value="0.05" />
+        <param name="controller_frequency" value="10.0" />
+        <param name="controller_patience" value="5.0" />
+        <param name="planner_patience" value="3.0" />
+        <param name="planner_frequency" value="0.5" />
+        <!--<param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS" />-->
+        <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+
+        <rosparam file="$(find ranger_ros)/nav_conf/costmap_common_params.yaml" command="load" ns="global_costmap" />
+        <rosparam file="$(find ranger_ros)/nav_conf/costmap_common_params.yaml" command="load" ns="local_costmap" />
+        <rosparam file="$(find ranger_ros)/nav_conf/local_costmap_params.yaml" command="load" />
+        <rosparam file="$(find ranger_ros)/nav_conf/global_costmap_params.yaml" command="load" />
+        <rosparam file="$(find ranger_ros)/nav_conf/local_planner.yaml" command="load" ns="TrajectoryPlannerROS" />
+        <rosparam file="$(find ranger_ros)/nav_conf/local_planner.yaml" command="load" ns="DWAPlannerROS" />
+    </node>
+
+</launch>
