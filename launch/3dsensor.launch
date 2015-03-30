@@ -2,6 +2,8 @@
 <launch>
   <arg name="camera"  value="camera"/>
   <arg name="manager" value="$(arg camera)_nodelet_manager" />
+  
+
 
   <!-- TF frames -->
   <arg name="rgb_frame_id"   default="rgb_camera_link_optical" />
@@ -34,11 +36,15 @@
   <arg name="depth"            default="depth" />
   <arg name="depth_registered" default="depth_registered" />
 
-
+  <!-- Worker threads for the nodelet manager -->
+  <arg name="num_worker_threads" default="4" />
+  
   <group ns="$(arg camera)">
-    <node pkg="nodelet" type="nodelet" name="$(arg manager)" respawn="true" args="manager"/>
+    <node pkg="nodelet" type="nodelet" name="$(arg manager)" respawn="true" args="manager">
+    	<param name="num_worker_threads"              value="$(arg num_worker_threads)" /> 
+    </node>
     <node pkg="nodelet" type="nodelet" name="openni2_camera" args="load openni2_camera/OpenNI2DriverNodelet $(arg manager)" respawn="true">
-
+    
 		<param name="rgb_camera_info_url"   value="$(arg rgb_camera_info_url)" />
 		<param name="depth_camera_info_url" value="$(arg depth_camera_info_url)" />
 		<param name="rgb_frame_id"   value="$(arg rgb_frame_id)" />

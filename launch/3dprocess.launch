@@ -3,6 +3,8 @@
   <arg name="camera"  value="camera"/>
   <arg name="manager" value="$(arg camera)_nodelet_manager" />
 
+  <!-- Worker threads for the nodelet manager -->
+  <arg name="num_worker_threads" default="4" />
 
   <!-- Hardware depth registration -->
   <arg name="depth_registration" default="true" />
