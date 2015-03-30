@@ -142,7 +142,6 @@ class Navigator():
         marker.scale.x = 0.3
         marker.scale.y = 0.02
         marker.scale.z = 0.02
-        pdb.set_trace()
         return marker
 
 #==========================================================================
@@ -223,42 +222,32 @@ if __name__=="__main__":
         if sts ==0:
             
             # params to pass to the class
-            path_map = ""
-            path_waypoint =  ""
-            file_map = ""
-            file_waypoint = ""
-        
+            full_path_map = ""
+            full_path_waypoint =  ""
+      
 
-             # param check
-            if path_map == "":
-                path_map = rospy.get_param("/navigator/path_map","")
-            if file_map == "":    
-                file_map = rospy.get_param("/navigator/file_map","")
-            full_path_map = os.path.join(path_map, file_map) 
-
+             # param checks
+            if full_path_map == "":    
+                full_path_map = rospy.get_param("/navigator/file_map","")
+            if full_path_waypoint == "":    
+                full_path_waypoint = rospy.get_param("/navigator/file_waypoint","") 
+    
             if full_path_map == "":
                 rospy.loginfo(  "Error: No map file specified")
                 sts= 1
             else:
+                # check if file exists
                 if (os.path.isfile(full_path_map)):
                     rospy.loginfo(  "Map file: '%s'" % full_path_map)
                 else:
                     rospy.loginfo(  "Error: Map file '%s' not found"  % full_path_map )
                     sts= 1
-
-
-            
-            if path_waypoint == "":
-                path_waypoint = rospy.get_param("/navigator/path_waypoint","")
-            if file_waypoint == "":    
-                file_waypoint = rospy.get_param("/navigator/file_waypoint","") 
-                
-            full_path_waypoint = os.path.join(path_waypoint, file_waypoint)
-                        
+                    
             if full_path_waypoint == "":
                 rospy.loginfo(  "Error: No waypoint file specified")
                 sts= 1
             else:
+                # check if file exists
                 if (os.path.isfile(full_path_waypoint)):
                     rospy.loginfo(  "Waypoint file: '%s'" % full_path_waypoint)
                 else:

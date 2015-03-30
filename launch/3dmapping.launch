@@ -10,10 +10,9 @@
 	<!-- Visual SLAM -->
 	<!-- args: "delete_db_on_start" and "udebug" -->
 	
-	<!-- Choose visualization -->
+	<!-- rtab visualization -->
 	<arg name="rtabmapviz" default="true" /> 
-	<!-- Choose visualization -->
-	<arg name="rviz" default="true" />
+
 	
 	<group ns="rtabmap">
 		<node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="screen" args="--delete_db_on_start">
@@ -81,7 +80,6 @@
                <!-- 
                <remap from="grid_map" to="/grid_map"/>
                -->
-                
         </node>
         
   		
