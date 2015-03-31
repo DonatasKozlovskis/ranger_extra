@@ -57,7 +57,7 @@
 			<!-- re-extract features after global loop closure -->
 			<param name="LccReextract/Activated" type="string" value="true"/>
 			<param name="LccReextract/FeatureType" type="string" value="0"/>			<!-- 0=SURF -->
-			<param name="LccReextract/MaxWords" type="string" value="0"/>           <!-- 0 no limits -->
+			<param name="LccReextract/MaxWords" type="string" value="0"/>           	<!-- 0 no limits -->
 
 			<param name="RGBD/AngularUpdate" type="string" value="0.01"/>             	<!-- Update map only if the robot is moving -->
 			<param name="RGBD/LinearUpdate" type="string" value="0.01"/>              	<!-- Update map only if the robot is moving -->
@@ -68,7 +68,7 @@
 			
 			<param name="Mem/BadSignaturesIgnored" type="string" value="false"/>      	<!-- Don't ignore bad images for 3D node creation (e.g. white walls) -->
 
-			<param name="Rtabmap/TimeThr" type="string" value="0"/>
+			<param name="Rtabmap/TimeThr" type="string" value="0"/>						<!-- Maximum time allowed for the detector (ms) (0=infinity) -->
 			
 			<param name="DbSqlite3/InMemory" type="string" value="true"/>           	<!-- Using database in the memory instead of a file on the hard disk -->					
 			<param name="DbSqlite3/CacheSize" type="string" value="10000"/>           	<!-- Sqlite cache size (default is 2000) -->
