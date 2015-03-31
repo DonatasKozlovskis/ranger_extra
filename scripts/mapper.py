@@ -222,7 +222,7 @@ class Mapper():
         # method to create base RVIZ marker
         marker = Marker()
         marker.header.frame_id = self.fixed_frame
-#        marker.header.stamp = rospy.Time.now()
+        marker.header.stamp = rospy.Time.now()
         marker.id = self.waypoint_id
         
         marker.action = marker.ADD
