@@ -18,6 +18,10 @@ import pdb
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import *
 from visualization_msgs.msg import Marker
+from std_msgs.msg import String
+# ROS server messages
+from std_srvs.srv import Empty
+
 
 ###############################################
 #
@@ -33,31 +37,35 @@ class Navigator():
         '''
         constructor
         '''
+        # take params from init
         self.full_path_waypoint = full_path_map
         self.full_path_waypoint = full_path_waypoint
-                  
-        # output file format
-        self.wp_fieldnames = ('num_id', 'wp_name', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw')                            
-        self.waypoints = self.loadWaypoints();
         
         # Get the private namespace parameters from launch file.
         self.fixed_frame = rospy.get_param('~fixed_frame', 'map')
+        
+        # rate 
+        self.rate = rospy.Rate(10.0) #10 Hz
+                  
+        # waypoint file format
+        self.wp_fieldnames = ('num_id', 'wp_name', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw')                            
+        self.waypoints = self.loadWaypoints();
 
         # Publisher of visualization markers for waypoints
-        self.marker_pub = rospy.Publisher("visualization_marker", Marker, queue_size=5)
-        # Publish to RVIZ all existing markers        
-        self.visualizeMarkers()
+        self.marker_pub = rospy.Publisher("visualization_marker", Marker, queue_size=40)
+        # service to clear the costmaps
+        self.clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
+        # Subscribe for keyboard        
+        rospy.Subscriber('keypress_talker',      String,     self.key_callback)
+
 
         #create action client
-        self.ac = actionlib.SimpleActionClient("move_base" ,MoveBaseAction)
+        self.move_base = actionlib.SimpleActionClient("move_base" ,MoveBaseAction)
 
         # wait for move_base server to be ready
-        while not self.ac.wait_for_server(rospy.Duration(5.0)) and not rospy.is_shutdown():
+        while not self.move_base.wait_for_server(rospy.Duration(5.0)) and not rospy.is_shutdown():
             rospy.loginfo(  "Waiting for Move Base Server")
 
-
-
-        self.rate = rospy.Rate(10.0) #10 Hz
             
     #==========================================================================
     def run(self):
@@ -65,11 +73,14 @@ class Navigator():
         main run loop
         '''
         rospy.loginfo("Navigator Ready")
-
+        
+        # Publish to RVIZ all existing markers        
+        self.visualizeMarkers()
+        
         while not rospy.is_shutdown():
             
-            wp = self.getWaypointByName("Frame_4")
-            rospy.loginfo(  "Found Waypoint %s" % wp)
+#            wp = self.getWaypointByName("Frame_3")
+#            rospy.loginfo(  "Found Waypoint %s" % wp)
 
             self.rate.sleep()
             
@@ -92,30 +103,46 @@ class Navigator():
         with open(self.full_path_waypoint, 'r') as wpfile:
             reader = csv.DictReader(wpfile, delimiter=';')
             for row in reader:
+                # convert to float
+                row["x"] = float(row["x"])
+                row["y"] = float(row["y"])
+                row["z"] = float(row["z"])
+                
+                row["qx"] = float(row["qx"])
+                row["qy"] = float(row["qy"])
+                row["qz"] = float(row["qz"])
+                row["qw"] = float(row["qw"])
+                
                 waypoints.append(row)
-
+                
+        rospy.loginfo(  "Loaded %d waypoints" % len(waypoints))
         return waypoints
     #==========================================================================
     def visualizeMarkers(self):
-        index = 0
+        index = 1
         for waypoint in self.waypoints:
             # publish arrow and text markers
+            self.marker_pub.publish( self.make_marker_text(index, waypoint) )
             self.marker_pub.publish( self.make_marker_arrow(index, waypoint) )
-            self.marker_pub.publish( self.make_marker_text(index, waypoint) )  
             index +=1
+            # sleep between publishing, otherwise messages will not be published
+            self.rate.sleep()
             
     #==========================================================================
     def make_marker(self, marker_id, waypoint): 
         # method to create base RVIZ marker
         marker = Marker()
-        marker.header.frame_id = self.fixed_frame
-        marker.action = marker.ADD
-
+        marker.header.frame_id = "/" + self.fixed_frame
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "navigator"
         marker.id = marker_id
         
-        marker.pose.position.x = float(waypoint["x"])
-        marker.pose.position.y = float(waypoint["y"])
-        marker.pose.position.z = float(waypoint["z"])
+        marker.action = marker.ADD
+        
+        
+        marker.pose.position.x = waypoint["x"]
+        marker.pose.position.y = waypoint["y"]
+        marker.pose.position.z = waypoint["z"]
         
         marker.lifetime = rospy.Duration()
         return marker
@@ -174,25 +201,39 @@ class Navigator():
             waypoint = {}
         return waypoint
         
+    #==========================================================================
+    def getWaypointByIndex(self, index):
+        try:
+            waypoint = self.waypoints[index]
+        except:
+            rospy.logwarn("getWaypointByIndex failed")
+            waypoint = {}
+        return waypoint
 
+    #==========================================================================  
+    def createGoal(self, waypoint):
+        
+        goal = MoveBaseGoal()
+        
+        goal.target_pose.header.frame_id = self.fixed_frame
+        goal.target_pose.header.stamp = rospy.Time.now()
+        # create goal pose position
+        goal.target_pose.pose.position.x = waypoint["x"]
+        goal.target_pose.pose.position.y = waypoint["y"]
+        goal.target_pose.pose.position.z = waypoint["z"]
+        # create goal pose orientation
+        goal.target_pose.pose.orientation.x  = waypoint["qx"]
+        goal.target_pose.pose.orientation.y  = waypoint["qy"]
+        goal.target_pose.pose.orientation.z  = waypoint["qz"]
+        goal.target_pose.pose.orientation.w  = waypoint["qw"]
+        
+        return goal
 
-    #==========================================================================        
+    #==========================================================================
+
     def goTo(self, waypoint):
         
-        self.goal = MoveBaseGoal()
-        
-        self.goal.target_pose.header.frame_id = 'map'
-        self.goal.target_pose.header.stamp = rospy.Time.now()
-        # create goal pose
-        self.goal.target_pose.pose.position.x = waypoint["x"]
-        self.goal.target_pose.pose.position.y = waypoint["y"]
-        self.goal.target_pose.pose.position.z = waypoint["z"]
-        
-        self.goal.target_pose.pose.orientation.x  = waypoint["qx"]
-        self.goal.target_pose.pose.orientation.y  = waypoint["qy"]
-        self.goal.target_pose.pose.orientation.z  = waypoint["qz"]
-        self.goal.target_pose.pose.orientation.w  = waypoint["qw"]
-        
+        goal = self.createGoal(waypoint)
 
         #set goal, start moving
         self.move_base.send_goal(goal)
@@ -208,7 +249,33 @@ class Navigator():
             # We made it!
             state = self.move_base.get_state()
             if state == GoalStatus.SUCCEEDED:
-                rospy.loginfo("Move succeeded")       
+                rospy.loginfo("Move to goal succeeded")       
+            else:
+                rospy.loginfo("Move to goal failed")
+
+        # clear costmaps
+        self.clear_costmaps()
+    #==========================================================================
+    def key_callback(self,msg):
+        '''
+        function to handle keyboard buttons
+        '''
+        
+        key = str(msg.data)
+        #rospy.loginfo("Heard keypress %s", key)
+        
+        if (key.isdigit()):
+            index = int(key)
+            if (index >= 0 and index < len(self.waypoints)):
+                waypoint = self.getWaypointByIndex(index)
+                self.goTo(waypoint)
+            else:
+                rospy.logwarn("key index out of bounds");
+                
+        else:
+            rospy.logwarn("not a number keypress");
+        
+        
 
 #==============================================================================
 # main function
