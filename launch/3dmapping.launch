@@ -1,7 +1,8 @@
 <!-- This launch file demonstrates the use of xtion ranger with rtabmap -->
 <launch>
-    <arg name="HOME" default="$(env HOME)" />
-
+	<arg name="map_folder" value="maps" />
+	<arg name="path_map"  value="$(find ranger_extra)/$(arg map_folder)"/>
+	
 	<!-- Xtion OpenNI on ranger -->
 	<!-- laser simulation is included in 3dsensor.launch 
 	<include file="$(find ranger_extra)/launch/3dsensor.launch"/>
@@ -9,10 +10,6 @@
 	-->
 	<!-- Visual SLAM -->
 	<!-- args: "delete_db_on_start" and "udebug" -->
-	
-	<!-- rtab visualization -->
-	<arg name="rtabmapviz" default="true" /> 
-
 	
 	<group ns="rtabmap">
 		<node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="screen" args="--delete_db_on_start">
@@ -28,21 +25,24 @@
 			<remap from="rgb/image" 		to="/camera/rgb/image_rect_color"/>
 			<remap from="depth/image" 		to="/camera/depth_registered/image_raw"/>
 			<remap from="rgb/camera_info" 	to="/camera/rgb/camera_info"/>
+			
 			<!-- Used for synchronization of the input topics above in hz -->
 			<param name="queue_size" type="int" value="10"/>
-			
-			<param name="Rtabmap/DatabasePath" type="string" value="$(arg HOME)/.ros/rtabmap.db"/>  <!-- Database used for mapping -->
-			<param name="Rtabmap/DetectionRate" type="string" value="2"/>     			<!-- Don't need to do relocation very often! Though better results if the same rate as when mapping. -->
-
 			<!-- Publish TF from /map to /odom. -->
-			<param name="publish_tf" type="bool" value="true"/>						
-
+			<param name="publish_tf" type="bool" value="true"/>	
+			
+			<param name="Rtabmap/WorkingDirectory" type="string" value="$(arg path_map)"/>  <!-- Working directory -->
+			<param name="Rtabmap/DatabasePath" type="string" value="$(arg path_map)/rtabmap.db"/> <!-- Database used for mapping -->
+			
 			<!-- RTAB-Map's parameters: do "rosrun rtabmap rtabmap params" to see the list of available parameters. -->
+			<param name="Rtabmap/LoopThr" type="string" value="0.11"/>                  <!-- default 0.11, Loop closing threshold, reject more global loop closures -->
+			<param name="Rtabmap/DetectionRate" type="string" value="2"/>     		<!-- Don't need to do relocation very often! Though better results if the same rate as when mapping. -->			
+
 			<param name="Mem/IncrementalMemory" type="string" value="true"/>          	<!-- true = Mapping/SLAM mode-->
 			<param name="Mem/RehearsalSimilarity" type="string" value="0.45"/>
 			<param name="Mem/RehearsedNodesKept" type="string" value="false"/>   
-			
-			<param name="RGBD/PoseScanMatching" type="string" value="true"/>  			<!-- Correct the odometry using the input laser topic using ICP-2D. -->
+			<param name="Mem/InitWMWithAllNodes" type="string" value="true"/> 			<!-- Load the full global map in RAM -->
+			<param name="RGBD/PoseScanMatching" type="string" value="false"/>  			<!-- Correct the odometry using the input laser topic using ICP-2D. -->
 			
 			<param name="LccIcp/Type" type="string" value="2"/>    						<!-- Loop closure transformation refining with ICP: 0=No ICP, 1=ICP 3D, 2=ICP 2D -->
 			<param name="LccIcp2/CorrespondenceRatio" type="string" value="0.5"/>
@@ -61,7 +61,6 @@
 
 			<param name="RGBD/AngularUpdate" type="string" value="0.01"/>             	<!-- Update map only if the robot is moving -->
 			<param name="RGBD/LinearUpdate" type="string" value="0.01"/>              	<!-- Update map only if the robot is moving -->
-			<param name="RGBD/ScanMatchingSize" type="string" value="0"/>             	<!-- Do odometry correction with consecutive laser scans -->
 			<param name="RGBD/LocalLoopDetectionSpace" type="string" value="false"/>   	<!-- Local loop closure detection (using estimated position) with locations in WM -->
 			<param name="RGBD/LocalLoopDetectionTime" type="string" value="false"/>    	<!-- Local loop closure detection with locations in STM -->
 			<param name="RGBD/OptimizeFromGraphEnd" type="string" value="false"/>    	<!-- Optimize graph from the latest node -->
@@ -73,34 +72,33 @@
 			<param name="DbSqlite3/InMemory" type="string" value="true"/>           	<!-- Using database in the memory instead of a file on the hard disk -->					
 			<param name="DbSqlite3/CacheSize" type="string" value="10000"/>           	<!-- Sqlite cache size (default is 2000) -->
 			
+			<!-- keypoints settings -->
+			<param name="Kp/DetectorStrategy" type="string" value="0"/>					<!-- 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF -->
 	        <param name="Kp/MaxDepth" type="string" value="4.0"/>						<!-- Maximum depth of the features is 4 meters -->
-          	<param name="Kp/RoiRatios" type="string" value="0.0 0.0 0.0 0.1"/>			<!-- Filter 30% bottom of the image -->
+          	<param name="Kp/RoiRatios" type="string" value="0.0 0.0 0.0 0.0"/>			<!-- Filter 10% bottom of the image -->
  
  			<param name="SURF/HessianThreshold" type="string" value="60"/>				<!-- Extract more SURF features -->
 	
 		</node>
+		
 		<!-- default rtabmap grid map-->
         <node pkg="rtabmap_ros" type="grid_map_assembler" name="grid_map_assembler" output="screen">
         	<remap from="grid_map" to="/map"/>
         	<param name="scan_voxel_size" type="str" value="0.01" />
-               <!-- 
-               <remap from="grid_map" to="/grid_map"/>
-               -->
         </node>
         
-  		
 		<!-- Visualisation RTAB-Map -->
-		<node if="$(arg rtabmapviz)" pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" args="-d $(find rtabmap_ros)/launch/config/rgbd_gui.ini" output="screen">
+		<node pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" args="-d $(find rtabmap_ros)/launch/config/rgbd_gui.ini" output="screen">
 			<param name="subscribe_depth" type="bool" value="true"/>
+			<param name="subscribe_laserScan" type="bool" value="false"/>
 			<param name="subscribe_odom_info" type="bool" value="false"/>
+			<param name="queue_size" type="int" value="30"/>
 
 			<remap from="rgb/image" 		to="/camera/rgb/image_rect_color"/>
 			<remap from="depth/image" 		to="/camera/depth_registered/image_raw"/>
 			<remap from="rgb/camera_info" 	to="/camera/depth_registered/camera_info"/>
-            <remap from="odom" to="/odom"/>
-
+			<remap from="odom" to="/odom"/>
 		</node>
-  		
   		
     </group>
     
