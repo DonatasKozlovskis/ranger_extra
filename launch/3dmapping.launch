@@ -39,7 +39,7 @@
 			<param name="Rtabmap/DetectionRate" type="string" value="2"/>     		<!-- Don't need to do relocation very often! Though better results if the same rate as when mapping. -->			
 
 			<param name="Mem/IncrementalMemory" type="string" value="true"/>          	<!-- true = Mapping/SLAM mode-->
-			<param name="Mem/RehearsalSimilarity" type="string" value="0.45"/>
+			<param name="Mem/RehearsalSimilarity" type="string" value="0.5"/>
 			<param name="Mem/RehearsedNodesKept" type="string" value="false"/>   
 			<param name="Mem/InitWMWithAllNodes" type="string" value="true"/> 			<!-- Load the full global map in RAM -->
 			<param name="RGBD/PoseScanMatching" type="string" value="false"/>  			<!-- Correct the odometry using the input laser topic using ICP-2D. -->
@@ -50,8 +50,8 @@
 			<param name="LccIcp2/Iterations" type="string" value="100"/>
 				
 			<param name="LccBow/Force2D" type="string" value="true"/>		
-			<param name="LccBow/MinInliers" type="string" value="5"/>
-			<param name="LccBow/InlierDistance" type="string" value="0.05"/>			<!-- 3D visual words correspondence distance -->
+			<param name="LccBow/MinInliers" type="string" value="7"/>
+			<param name="LccBow/InlierDistance" type="string" value="0.02"/>			<!-- 3D visual words correspondence distance -->
 			<param name="LccBow/MaxDepth" type="string" value="4.0"/>                 	<!-- 3D visual words maximum depth 0=infinity -->
 			
 			<!-- re-extract features after global loop closure -->
