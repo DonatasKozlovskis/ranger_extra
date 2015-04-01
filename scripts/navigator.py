@@ -19,7 +19,6 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import *
 from visualization_msgs.msg import Marker
 from std_msgs.msg import String
-# ROS server messages
 from std_srvs.srv import Empty
 
 
@@ -49,10 +48,12 @@ class Navigator():
                   
         # waypoint file format
         self.wp_fieldnames = ('num_id', 'wp_name', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw')                            
-        self.waypoints = self.loadWaypoints();
+        self.waypoints = self.load_waypoints();
 
         # Publisher of visualization markers for waypoints
-        self.marker_pub = rospy.Publisher("visualization_marker", Marker, queue_size=40)
+        self._pub_marker = rospy.Publisher("visualization_marker", Marker, queue_size=40)
+        self._pub_frame_names = rospy.Publisher("frame_names", String, queue_size=40)
+        
         # service to clear the costmaps
         self.clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
         # Subscribe for keyboard        
@@ -75,7 +76,7 @@ class Navigator():
         rospy.loginfo("Navigator Ready")
         
         # Publish to RVIZ all existing markers        
-        self.visualizeMarkers()
+        self.visualize_markers()
         
         while not rospy.is_shutdown():
             
@@ -96,7 +97,7 @@ class Navigator():
     #   x,y,z:     x,y,z of waypoint location in map frame
     #   qx,qy,qz,qw:  (quaternion components) in map frame
     #
-    def loadWaypoints(self):
+    def load_waypoints(self):
 
         waypoints = []
         
@@ -118,17 +119,19 @@ class Navigator():
         rospy.loginfo(  "Loaded %d waypoints" % len(waypoints))
         return waypoints
     #==========================================================================
-    def visualizeMarkers(self):
+    # publish waypoints using arrows and names
+    def visualize_markers(self):
         index = 1
         for waypoint in self.waypoints:
             # publish arrow and text markers
-            self.marker_pub.publish( self.make_marker_text(index, waypoint) )
-            self.marker_pub.publish( self.make_marker_arrow(index, waypoint) )
+            self._pub_marker.publish( self.make_marker_text(index, waypoint) )
+            self._pub_marker.publish( self.make_marker_arrow(index, waypoint) )
             index +=1
             # sleep between publishing, otherwise messages will not be published
             self.rate.sleep()
             
     #==========================================================================
+    # create general marker
     def make_marker(self, marker_id, waypoint): 
         # method to create base RVIZ marker
         marker = Marker()
@@ -148,6 +151,7 @@ class Navigator():
         return marker
         
     #==========================================================================
+    # create arrow marker
     def make_marker_arrow(self, marker_id, waypoint): 
         # method to create RVIZ marker
         marker = self.make_marker(marker_id, waypoint)
@@ -171,7 +175,8 @@ class Navigator():
         marker.scale.z = 0.02
         return marker
 
-#==========================================================================
+    #==========================================================================
+    # create text marker
     def make_marker_text(self, marker_id, waypoint): 
         # method to create RVIZ marker
         marker = self.make_marker(marker_id, waypoint)
@@ -202,16 +207,16 @@ class Navigator():
         return waypoint
         
     #==========================================================================
-    def getWaypointByIndex(self, index):
+    def get_waypoint_by_index(self, index):
         try:
             waypoint = self.waypoints[index]
         except:
-            rospy.logwarn("getWaypointByIndex failed")
+            rospy.logwarn("get_waypoint_by_index failed")
             waypoint = {}
         return waypoint
 
     #==========================================================================  
-    def createGoal(self, waypoint):
+    def create_goal(self, waypoint):
         
         goal = MoveBaseGoal()
         
@@ -231,9 +236,9 @@ class Navigator():
 
     #==========================================================================
 
-    def goTo(self, waypoint):
+    def go_to(self, waypoint):
         
-        goal = self.createGoal(waypoint)
+        goal = self.create_goal(waypoint)
 
         #set goal, start moving
         self.move_base.send_goal(goal)
@@ -267,8 +272,8 @@ class Navigator():
         if (key.isdigit()):
             index = int(key)
             if (index >= 0 and index < len(self.waypoints)):
-                waypoint = self.getWaypointByIndex(index)
-                self.goTo(waypoint)
+                waypoint = self.get_waypoint_by_index(index)
+                self.go_to(waypoint)
             else:
                 rospy.logwarn("key index out of bounds");
                 
