@@ -52,7 +52,7 @@ class Navigator():
 
         # Publisher of visualization markers for waypoints
         self._pub_marker = rospy.Publisher("visualization_marker", Marker, queue_size=40)
-        self._pub_frame_names = rospy.Publisher("frame_names", String, queue_size=40)
+        self._pub_wp_names = rospy.Publisher("frame_names", String, queue_size=40)
         
         # service to clear the costmaps
         self.clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
@@ -80,7 +80,11 @@ class Navigator():
         
         while not rospy.is_shutdown():
             
-#            wp = self.getWaypointByName("Frame_3")
+            #publish loaded waypoint names
+            if (self._pub_wp_names.get_num_connections() > 0):
+                self._pub_wp_names.publish( String(self.get_waypoint_names()) )
+            
+#            wp = self.get_waypoint_by_name("Frame_3")
 #            rospy.loginfo(  "Found Waypoint %s" % wp)
 
             self.rate.sleep()
@@ -196,13 +200,20 @@ class Navigator():
                 
         return marker
 
+    #==========================================================================
+    def get_waypoint_names(self):
+        wp_names = ""
+        for waypoint in self.waypoints:
+            wp_names += '\n' + waypoint.get('wp_name') 
+
+        return wp_names
 
     #==========================================================================
-    def getWaypointByName(self, name):
+    def get_waypoint_by_name(self, name):
         try:
             waypoint = (wp for wp in self.waypoints if wp["wp_name"] == name).next()
         except StopIteration as ex:
-            rospy.logwarn("getWaypointByName failed %s" % str(ex))
+            rospy.logwarn("get_waypoint_by_name failed %s" % str(ex))
             waypoint = {}
         return waypoint
         
