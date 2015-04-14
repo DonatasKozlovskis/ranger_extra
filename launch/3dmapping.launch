@@ -60,7 +60,7 @@
 
 			<param name="RGBD/AngularUpdate" type="string" value="0.01"/>             	<!-- Update map only if the robot is moving -->
 			<param name="RGBD/LinearUpdate" type="string" value="0.01"/>              	<!-- Update map only if the robot is moving -->
-			<param name="RGBD/LocalLoopDetectionSpace" type="string" value="true"/>   	<!-- Local loop closure detection (using estimated position) with locations in WM -->
+			<param name="RGBD/LocalLoopDetectionSpace" type="string" value="false"/>   	<!-- Local loop closure detection (using estimated position) with locations in WM -->
 			<param name="RGBD/LocalLoopDetectionTime" type="string" value="false"/>    	<!-- Local loop closure detection with locations in STM -->
 			<param name="RGBD/OptimizeFromGraphEnd" type="string" value="false"/>    	<!-- Optimize graph from the latest node -->
 			
@@ -73,10 +73,10 @@
 			
 			<!-- keypoints settings -->
 			<param name="Kp/DetectorStrategy" type="string" value="0"/>					<!-- 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF -->
-	        <param name="Kp/MaxDepth" type="string" value="0.0"/>						<!-- Maximum depth of the features is 4 meters -->
+	        <param name="Kp/MaxDepth" type="string" value="4.0"/>						<!-- Maximum depth of the features is 4 meters -->
           	<param name="Kp/RoiRatios" type="string" value="0.0 0.0 0.0 0.0"/>			<!-- Filter 10% bottom of the image -->
  
- 			<param name="SURF/HessianThreshold" type="string" value="150"/>				<!-- Extract more SURF features -->
+ 			<param name="SURF/HessianThreshold" type="string" value="60"/>				<!-- Extract more SURF features -->
 	
 		</node>
 		
