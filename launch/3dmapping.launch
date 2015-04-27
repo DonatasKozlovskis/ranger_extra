@@ -54,7 +54,7 @@
 			<param name="LccBow/MaxDepth" type="string" value="4.0"/>                 	<!-- 3D visual words maximum depth 0=infinity -->
 			
 			<!-- re-extract features after global loop closure -->
-			<param name="LccReextract/Activated" type="string" value="true"/>
+			<param name="LccReextract/Activated" type="string" value="false"/>
 			<param name="LccReextract/FeatureType" type="string" value="0"/>			<!-- 0=SURF -->
 			<param name="LccReextract/MaxWords" type="string" value="0"/>           	<!-- 0 no limits -->
 
@@ -73,8 +73,8 @@
 			
 			<!-- keypoints settings -->
 			<param name="Kp/DetectorStrategy" type="string" value="0"/>					<!-- 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF -->
-	        <param name="Kp/MaxDepth" type="string" value="4.0"/>						<!-- Maximum depth of the features is 4 meters -->
-          	<param name="Kp/RoiRatios" type="string" value="0.0 0.0 0.0 0.0"/>			<!-- Filter 10% bottom of the image -->
+	        <param name="Kp/MaxDepth" type="string" value=" 4.0"/>						<!-- Maximum depth of the features is 4 meters -->
+          	<param name="Kp/RoiRatios" type="string" value="0.0 0.0 0.0 0.0"/>			<!-- Filter parts percentages of the image -->
  
  			<param name="SURF/HessianThreshold" type="string" value="60"/>				<!-- Extract more SURF features -->
 	

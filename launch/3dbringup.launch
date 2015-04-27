@@ -1,5 +1,0 @@
-<!-- -->
-<launch>
-	<include file="$(find ranger_extra)/launch/3dsensor.launch"/>
-	<include file="$(find ranger_extra)/launch/3dprocess.launch"/>
-</launch>
