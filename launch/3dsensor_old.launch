@@ -1,0 +1,5 @@
+<!-- -->
+<launch>
+	<include file="$(find ranger_extra)/launch/include/3dcamera.launch.xml"/>
+	<include file="$(find ranger_extra)/launch/include/3dprocess.launch.xml"/>
+</launch>
