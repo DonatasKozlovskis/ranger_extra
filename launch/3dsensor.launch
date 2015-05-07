@@ -47,7 +47,7 @@
   
   <group ns="$(arg camera)">
 	<node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan_loader" args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet $(arg camera)_nodelet_manager">
-		<param name="scan_height" value="20"/>
+		<param name="scan_height" value="60"/>
 		<param name="output_frame_id" value="/depth_camera_link"/>
 		<param name="range_min" value="0.3"/>
 		<param name="range_max" value="4.0"/>

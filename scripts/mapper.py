@@ -120,6 +120,11 @@ class Mapper():
                 self.tf = (trans, rot)
         
             self.rate.sleep()
+            
+        rospy.loginfo("Saving waypoints to file before exit");
+        self.save_waypoints();
+        rospy.loginfo("Saving map and switching to localisation mode");
+        self.save_map();
         
         return 0
 

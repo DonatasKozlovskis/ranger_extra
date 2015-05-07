@@ -20,11 +20,12 @@ from actionlib_msgs.msg import *
 from visualization_msgs.msg import Marker
 from std_msgs.msg import String
 from std_srvs.srv import Empty
+from ranger_librarian.msg import NavigatorAction
 
 
 ###############################################
 #
-#   Class for the Navigator.py ROS node
+#   Class for the Mapper.py ROS node
 class Navigator():
     #
     # Constructor
@@ -44,7 +45,12 @@ class Navigator():
         self.fixed_frame = rospy.get_param('~fixed_frame', 'map')
         
         # rate 
-        self.rate = rospy.Rate(10.0) #10 Hz
+        self.rate = rospy.Rate(10) #10 Hz
+        
+        # action
+        self.action_current = -1; #initial action
+        self.goal_counter =  0;
+        self.goal_waypoint = None;
                   
         # waypoint file format
         self.wp_fieldnames = ('num_id', 'wp_name', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw')                            
@@ -58,6 +64,7 @@ class Navigator():
         self.clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
         # Subscribe for keyboard        
         rospy.Subscriber('keypress_talker',      String,     self.key_callback)
+        rospy.Subscriber('navigator_action', NavigatorAction,     self.nav_action_callback)
 
 
         #create action client
@@ -66,7 +73,7 @@ class Navigator():
         # wait for move_base server to be ready
         while not self.move_base.wait_for_server(rospy.Duration(5.0)) and not rospy.is_shutdown():
             rospy.loginfo(  "Waiting for Move Base Server")
-
+        
             
     #==========================================================================
     def run(self):
@@ -78,19 +85,67 @@ class Navigator():
         # Publish to RVIZ all existing markers        
         self.visualize_markers()
         
+        goal_status = None;
+                
+        
+#                    #publish loaded waypoint names
+#            if (self._pub_wp_names.get_num_connections() > 0):
+#                self._pub_wp_names.publish( String(self.get_waypoint_names()) )
+        
         while not rospy.is_shutdown():
             
-            #publish loaded waypoint names
-            if (self._pub_wp_names.get_num_connections() > 0):
-                self._pub_wp_names.publish( String(self.get_waypoint_names()) )
+            if (self.action_current==NavigatorAction.MOVE):
+                rospy.loginfo("action MOVE");
+                if (self.goal_waypoint==None or goal_status == True):
+                     #create next goal
+                    self.goal_waypoint = self.get_next_waypoint();
+                    goal = self.create_goal(self.goal_waypoint)
+                    
+                    # clear all goals
+                    self.move_base.cancel_all_goals();
+                    self.clear_costmaps()
+                    #set goal, start moving
+                    self.move_base.send_goal(goal)
+                
+                goal_status = self.move_base.wait_for_result(rospy.Duration(0.5))
+                                
             
-#            wp = self.get_waypoint_by_name("Frame_3")
-#            rospy.loginfo(  "Found Waypoint %s" % wp)
+            if (self.action_current==NavigatorAction.STOP):
+                rospy.loginfo("action STOP")
+                if (self.goal_waypoint!=None):
+                    self.goal_counter -= 1;
+                    self.move_base.cancel_all_goals();
+                    self.goal_waypoint = None
+                         
 
+                
+            if (self.action_current==NavigatorAction.FINISH):
+                rospy.loginfo(  "action FINISH")
+                self.goal_waypoint = self.get_waypoint_by_name("Librarian")
+                goal = self.create_goal(self.goal_waypoint)
+                #set goal, start moving
+                self.move_base.send_goal(goal)
+                goal_status = self.move_base.wait_for_result(rospy.Duration(240)) 
+                 
+                
+                
+                
+                
             self.rate.sleep()
             
         return 0
-
+    #==========================================================================
+    def get_next_waypoint(self):
+        
+        numb_of_random_waypoints = len(self.waypoints) -1;
+        self.goal_counter +=1;
+        
+        self.goal_counter = self.goal_counter % numb_of_random_waypoints;
+        index = self.goal_counter+1;
+        waypoint = self.get_waypoint_by_index(index)
+        
+        return waypoint;
+        
     
     #==========================================================================
     # read waypoint files
@@ -271,6 +326,7 @@ class Navigator():
 
         # clear costmaps
         self.clear_costmaps()
+        
     #==========================================================================
     def key_callback(self,msg):
         '''
@@ -278,7 +334,7 @@ class Navigator():
         '''
         
         key = str(msg.data)
-        #rospy.loginfo("Heard keypress %s", key)
+        rospy.loginfo("Heard keypress %s", key)
         
         if (key.isdigit()):
             index = int(key)
@@ -289,9 +345,17 @@ class Navigator():
                 rospy.logwarn("key index out of bounds");
                 
         else:
-            rospy.logwarn("not a number keypress");
-        
-        
+            rospy.logwarn("not a number keypress");   
+            
+    #==========================================================================
+    def nav_action_callback(self,msg):
+        '''
+        function to handle keyboard buttons
+        '''
+        action = msg.action;
+        if (self.action_current<>action):
+            self.action_current = action;    
+            
 
 #==============================================================================
 # main function
@@ -301,7 +365,7 @@ if __name__=="__main__":
     rospy.loginfo("Running Navigator")
     try:
         # ROS initialization
-        rospy.init_node("navigator")
+        rospy.init_node("navigator_librarian")
         if sts ==0:
             
             # params to pass to the class
