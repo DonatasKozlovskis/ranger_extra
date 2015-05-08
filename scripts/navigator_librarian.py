@@ -32,6 +32,7 @@ class Navigator():
     #
     #   path_map: path where the map file will be saved
     #   path_waypoint: path where the waypoint file will be saved
+    NODE_FREQUENCY = 10 #Hz
 
     def __init__(self, full_path_map, full_path_waypoint):
         '''
@@ -45,11 +46,15 @@ class Navigator():
         self.fixed_frame = rospy.get_param('~fixed_frame', 'map')
         
         # rate 
-        self.rate = rospy.Rate(10) #10 Hz
+        self.rate = rospy.Rate(NODE_FREQUENCY) #NODE_FREQUENCY Hz
         
+        # goal tries 
+        goal_time = 180 # allow 180/60=3 minutes to reach goal
+        self.goal_tries_max = goal_time*NODE_FREQUENCY;
         # action
-        self.action_current = -1; #initial action
-        self.goal_counter =  0;
+        self.action_current = None;   #initial action
+        self.action_before = None;   #initial action
+        self.goal_wp_index =  0;       # gaols are defined in 2--nrows(waypoints)
         self.goal_waypoint = None;
                   
         # waypoint file format
@@ -62,12 +67,10 @@ class Navigator():
         
         # service to clear the costmaps
         self.clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
-        # Subscribe for keyboard        
-        rospy.Subscriber('keypress_talker',      String,     self.key_callback)
-        rospy.Subscriber('navigator_action', NavigatorAction,     self.nav_action_callback)
+        # Subscribe for navigator actions        
+        rospy.Subscriber('navigator_action', NavigatorAction, self.nav_action_callback)
 
-
-        #create action client
+        #create move base actionlib client
         self.move_base = actionlib.SimpleActionClient("move_base" ,MoveBaseAction)
 
         # wait for move_base server to be ready
@@ -86,63 +89,87 @@ class Navigator():
         self.visualize_markers()
         
         goal_status = None;
+        goal_tries = 0; # number of times robot tried to reach goal
                 
-        
-#                    #publish loaded waypoint names
+#publish loaded waypoint names
 #            if (self._pub_wp_names.get_num_connections() > 0):
 #                self._pub_wp_names.publish( String(self.get_waypoint_names()) )
         
         while not rospy.is_shutdown():
             
+            if (self.action_current==NavigatorAction.STOP):
+                # no need to loop over action stop
+                if (self.action_before != self.action_current):
+                    rospy.loginfo("action STOP")
+                    if (self.goal_waypoint!=None):
+                        self.goal_waypoint = None
+                        self.goal_wp_index -= 1;
+                        self.move_base.cancel_all_goals();
+                        self.clear_costmaps();
+            # end if                         
+            
             if (self.action_current==NavigatorAction.MOVE):
                 rospy.loginfo("action MOVE");
-                if (self.goal_waypoint==None or goal_status == True):
+                
+                next_goal = self.goal_waypoint==None or goal_status == True or goal_tries>self.goal_tries_max
+                if (next_goal):
+                    # clear all goals if exist
+                    self.move_base.cancel_all_goals();
+                    self.clear_costmaps()
+                    goal_tries = 0;
                      #create next goal
                     self.goal_waypoint = self.get_next_waypoint();
                     goal = self.create_goal(self.goal_waypoint)
-                    
-                    # clear all goals
-                    self.move_base.cancel_all_goals();
-                    self.clear_costmaps()
                     #set goal, start moving
                     self.move_base.send_goal(goal)
-                
-                goal_status = self.move_base.wait_for_result(rospy.Duration(0.5))
-                                
-            
-            if (self.action_current==NavigatorAction.STOP):
-                rospy.loginfo("action STOP")
-                if (self.goal_waypoint!=None):
-                    self.goal_counter -= 1;
-                    self.move_base.cancel_all_goals();
-                    self.goal_waypoint = None
-                         
+                goal_tries += 1;
+                goal_status = self.move_base.wait_for_result(rospy.Duration(0.2))
+            # end if                                 
 
                 
             if (self.action_current==NavigatorAction.FINISH):
                 rospy.loginfo(  "action FINISH")
-                self.goal_waypoint = self.get_waypoint_by_name("Librarian")
-                goal = self.create_goal(self.goal_waypoint)
-                #set goal, start moving
-                self.move_base.send_goal(goal)
-                goal_status = self.move_base.wait_for_result(rospy.Duration(240)) 
-                 
+                goal_finish = self.action_before != self.action_current or goal_tries>self.goal_tries_max
+                if (goal_finish):
+                    self.move_base.cancel_all_goals();
+                    self.clear_costmaps();
+                    goal_tries = 0;
+                     #create librarian goal
+                    self.goal_waypoint = self.get_waypoint_by_name("Librarian")
+                    goal = self.create_goal(self.goal_waypoint)
+                    #set goal, start moving
+                    self.move_base.send_goal(goal)
+                goal_tries += 1;
+                goal_status = self.move_base.wait_for_result(rospy.Duration(10)) 
+            # end if 
                 
                 
                 
-                
-            self.rate.sleep()
+            self.action_before = self.action_current
+            self.rate.sleep();
+        # end while
             
+        # cancel all goals before shutdown
+        self.move_base.cancel_all_goals();
+        # clear costmaps
+        self.clear_costmaps();
         return 0
     #==========================================================================
+    # get next waypoint by goal index
+    # goal wp index lie in range [2,len(waypoints)] - total len(waypoints)-1 wp
+    # thus temp index is in range [0-(len(waypoints)-2)]
+    # 
     def get_next_waypoint(self):
+        number_of_goal_waypoints = len(self.waypoints) -1;
         
-        numb_of_random_waypoints = len(self.waypoints) -1;
-        self.goal_counter +=1;
-        
-        self.goal_counter = self.goal_counter % numb_of_random_waypoints;
-        index = self.goal_counter+1;
-        waypoint = self.get_waypoint_by_index(index)
+        temp_index =  self.goal_wp_index-2;
+        if (temp_index<0):
+            temp_index = 0;
+        #increase index
+        temp_index = self.goal_wp_index-2+1;
+        temp_index = temp_index % number_of_goal_waypoints;
+        self.goal_wp_index = temp_index + 2;
+        waypoint = self.get_waypoint_by_index(self.goal_wp_index)
         
         return waypoint;
         
@@ -274,6 +301,11 @@ class Navigator():
         
     #==========================================================================
     def get_waypoint_by_index(self, index):
+#if (index >= 0 and index < len(self.waypoints)):
+#waypoint = self.waypoints[index]
+#else:
+#rospy.logwarn("waypoint index out of bounds!")
+#waypoint = {}
         try:
             waypoint = self.waypoints[index]
         except:
@@ -326,27 +358,7 @@ class Navigator():
 
         # clear costmaps
         self.clear_costmaps()
-        
-    #==========================================================================
-    def key_callback(self,msg):
-        '''
-        function to handle keyboard buttons
-        '''
-        
-        key = str(msg.data)
-        rospy.loginfo("Heard keypress %s", key)
-        
-        if (key.isdigit()):
-            index = int(key)
-            if (index >= 0 and index < len(self.waypoints)):
-                waypoint = self.get_waypoint_by_index(index)
-                self.go_to(waypoint)
-            else:
-                rospy.logwarn("key index out of bounds");
-                
-        else:
-            rospy.logwarn("not a number keypress");   
-            
+                   
     #==========================================================================
     def nav_action_callback(self,msg):
         '''
@@ -354,6 +366,7 @@ class Navigator():
         '''
         action = msg.action;
         if (self.action_current<>action):
+            # update actions
             self.action_current = action;    
             
 
