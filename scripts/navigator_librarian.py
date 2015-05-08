@@ -34,23 +34,22 @@ class Navigator():
     #   path_waypoint: path where the waypoint file will be saved
     NODE_FREQUENCY = 10 #Hz
 
-    def __init__(self, full_path_map, full_path_waypoint):
+    def __init__(self, full_path_waypoint):
         '''
         constructor
         '''
         # take params from init
-        self.full_path_waypoint = full_path_map
         self.full_path_waypoint = full_path_waypoint
         
         # Get the private namespace parameters from launch file.
         self.fixed_frame = rospy.get_param('~fixed_frame', 'map')
         
         # rate 
-        self.rate = rospy.Rate(NODE_FREQUENCY) #NODE_FREQUENCY Hz
+        self.rate = rospy.Rate(self.NODE_FREQUENCY) #NODE_FREQUENCY Hz
         
         # goal tries 
         goal_time = 180 # allow 180/60=3 minutes to reach goal
-        self.goal_tries_max = goal_time*NODE_FREQUENCY;
+        self.goal_tries_max = goal_time*self.NODE_FREQUENCY;
         # action
         self.action_current = None;   #initial action
         self.action_before = None;   #initial action
@@ -162,11 +161,11 @@ class Navigator():
     def get_next_waypoint(self):
         number_of_goal_waypoints = len(self.waypoints) -1;
         
-        temp_index =  self.goal_wp_index-2;
+        temp_index = self.goal_wp_index-2;
         if (temp_index<0):
             temp_index = 0;
         #increase index
-        temp_index = self.goal_wp_index-2+1;
+        temp_index +=1;
         temp_index = temp_index % number_of_goal_waypoints;
         self.goal_wp_index = temp_index + 2;
         waypoint = self.get_waypoint_by_index(self.goal_wp_index)
@@ -387,22 +386,9 @@ if __name__=="__main__":
       
 
              # param checks
-            if full_path_map == "":    
-                full_path_map = rospy.get_param("/navigator/file_map","")
             if full_path_waypoint == "":    
                 full_path_waypoint = rospy.get_param("/navigator/file_waypoint","") 
-    
-            if full_path_map == "":
-                rospy.loginfo(  "Error: No map file specified")
-                sts= 1
-            else:
-                # check if file exists
-                if (os.path.isfile(full_path_map)):
-                    rospy.loginfo(  "Map file: '%s'" % full_path_map)
-                else:
-                    rospy.loginfo(  "Error: Map file '%s' not found"  % full_path_map )
-                    sts= 1
-                    
+                        
             if full_path_waypoint == "":
                 rospy.loginfo(  "Error: No waypoint file specified")
                 sts= 1
@@ -417,7 +403,7 @@ if __name__=="__main__":
 
         if sts ==0:
             # run the navigator node
-            navigator = Navigator(full_path_map,full_path_waypoint)
+            navigator = Navigator(full_path_waypoint)
             sts = navigator.run()
         
     except Exception as ex:
