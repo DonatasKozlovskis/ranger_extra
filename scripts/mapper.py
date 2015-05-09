@@ -17,6 +17,7 @@ import rospy
 import tf
 import csv
 import os
+import shutil
 import sys
 import subprocess
 
@@ -301,15 +302,18 @@ class Mapper():
         '''
         
         # Put rtabmap in localization mode so it does not continue to update map after we save it
-        rtabmap_localization_mode = rospy.ServiceProxy('rtabmap/set_mode_localization',Empty())
+        rtabmap_localization_mode = rospy.ServiceProxy('/rtabmap/set_mode_localization',Empty())
         
         file_name_map_stamped = self.file_name_map + "_" + str(self.start_time);
-        
+        rtab_db_name_stamped = "/home/st13nod/.ros/rtabmap_" + str(self.start_time) + ".db";
         try:
-            rtabmap_localization_mode()
             # save map file using map_server
             sts = subprocess.call('cd "%s"; rosrun map_server map_saver -f "%s"' % (self.path_map, file_name_map_stamped), shell=True)
             rospy.loginfo( "Save Map returned sts %d" % sts)
+            
+            rtabmap_localization_mode()
+            #copy db
+            shutil.copy("/home/st13nod/.ros/rtabmap.db", rtab_db_name_stamped)
         except Exception as ex:
             rospy.logwarn("Save map crashed: %s" % str(ex))
         
