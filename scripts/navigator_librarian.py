@@ -10,6 +10,7 @@ import csv
 import os
 import sys
 import pdb
+import numpy
 
 # Transformations
 
@@ -18,6 +19,7 @@ import pdb
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import *
 from visualization_msgs.msg import Marker
+from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 from ranger_librarian.msg import NavigatorAction
@@ -32,7 +34,7 @@ class Navigator():
     #
     #   path_map: path where the map file will be saved
     #   path_waypoint: path where the waypoint file will be saved
-    NODE_FREQUENCY = 10 #Hz
+    NODE_FREQUENCY = 5 #Hz
 
     def __init__(self, full_path_waypoint):
         '''
@@ -63,6 +65,7 @@ class Navigator():
         # Publisher of visualization markers for waypoints
         self._pub_marker = rospy.Publisher("visualization_marker", Marker, queue_size=40)
         self._pub_wp_names = rospy.Publisher("frame_names", String, queue_size=40)
+        self._pub_cmd_vel = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
         
         # service to clear the costmaps
         self.clear_costmaps = rospy.ServiceProxy("/move_base/clear_costmaps", Empty)
@@ -89,6 +92,12 @@ class Navigator():
         
         goal_status = None;
         goal_tries = 0; # number of times robot tried to reach goal
+        time_start = rospy.Time.now()       #current time
+        time_now = rospy.Time.now()         #current time
+        
+#        self.go_straight(0.5);
+#        self.look_around();
+        
                 
 #publish loaded waypoint names
 #            if (self._pub_wp_names.get_num_connections() > 0):
@@ -98,13 +107,16 @@ class Navigator():
             
             if (self.action_current==NavigatorAction.STOP):
                 # no need to loop over action stop
-                if (self.action_before != self.action_current):
+                if (1):
+                    self.action_before = self.action_current
                     rospy.loginfo("action STOP")
                     if (self.goal_waypoint!=None):
-                        self.goal_waypoint = None
-                        self.goal_wp_index -= 1;
+                        self.move_base.wait_for_result(rospy.Duration(0.2))
                         self.move_base.cancel_all_goals();
                         self.clear_costmaps();
+                        
+                        self.goal_waypoint = None
+                        self.goal_wp_index -= 1;
             # end if                         
             
             if (self.action_current==NavigatorAction.MOVE):
@@ -122,19 +134,24 @@ class Navigator():
                     #set goal, start moving
                     self.move_base.send_goal(goal)
                 goal_tries += 1;
-                goal_status = self.move_base.wait_for_result(rospy.Duration(0.2))
+                goal_status = self.move_base.wait_for_result(rospy.Duration(0.5))
             # end if                                 
 
                 
             if (self.action_current==NavigatorAction.FINISH):
                 rospy.loginfo(  "action FINISH")
                 goal_finish = self.action_before != self.action_current or goal_tries>self.goal_tries_max
+                
+                self.action_before = self.action_current
                 if (goal_finish):
+                    self.move_base.wait_for_result(rospy.Duration(0.1))
                     self.move_base.cancel_all_goals();
                     self.clear_costmaps();
                     goal_tries = 0;
-                     #create librarian goal
-                    self.goal_waypoint = self.get_waypoint_by_name("Librarian")
+                    # create librarian goal
+                    # self.goal_waypoint = self.get_waypoint_by_name("Librarian")
+                    # equivalent to
+                    self.goal_waypoint = self.get_waypoint_by_index(0);
                     goal = self.create_goal(self.goal_waypoint)
                     #set goal, start moving
                     self.move_base.send_goal(goal)
@@ -142,10 +159,8 @@ class Navigator():
                 goal_status = self.move_base.wait_for_result(rospy.Duration(10)) 
             # end if 
                 
-                
-                
-            self.action_before = self.action_current
             self.rate.sleep();
+            time_now = rospy.Time.now()
         # end while
             
         # cancel all goals before shutdown
@@ -161,18 +176,18 @@ class Navigator():
     def get_next_waypoint(self):
         number_of_goal_waypoints = len(self.waypoints) -1;
         
-        temp_index = self.goal_wp_index-2;
+        temp_index = self.goal_wp_index-1;
+        # check just in case...
         if (temp_index<0):
             temp_index = 0;
         #increase index
         temp_index +=1;
         temp_index = temp_index % number_of_goal_waypoints;
-        self.goal_wp_index = temp_index + 2;
+        self.goal_wp_index = temp_index + 1;
         waypoint = self.get_waypoint_by_index(self.goal_wp_index)
         
         return waypoint;
         
-    
     #==========================================================================
     # read waypoint files
     #
@@ -300,11 +315,13 @@ class Navigator():
         
     #==========================================================================
     def get_waypoint_by_index(self, index):
-#if (index >= 0 and index < len(self.waypoints)):
-#waypoint = self.waypoints[index]
-#else:
-#rospy.logwarn("waypoint index out of bounds!")
-#waypoint = {}
+        # list index in range [0-(len-1)]
+        if (index >= 0 and index < len(self.waypoints)):
+            waypoint = self.waypoints[index]
+        else:
+            rospy.logwarn("waypoint index out of bounds!")
+            rospy.logwarn("%s" % str(index))
+        waypoint = {}
         try:
             waypoint = self.waypoints[index]
         except:
@@ -336,17 +353,15 @@ class Navigator():
     def go_to(self, waypoint):
         
         goal = self.create_goal(waypoint)
-
         #set goal, start moving
         self.move_base.send_goal(goal)
-
-        #allow robot up to 60 seconds to complete task
-        success = self.move_base.wait_for_result(rospy.Duration(60)) 
+        #allow robot up to 30 seconds to complete task
+        success = self.move_base.wait_for_result(rospy.Duration(30)) 
 
 
         if not success:
             self.move_base.cancel_goal()
-            rospy.loginfo("Move failed, time out 60 s")
+            rospy.loginfo("Move failed, time out 30 s")
         else:
             # We made it!
             state = self.move_base.get_state()
@@ -361,13 +376,55 @@ class Navigator():
     #==========================================================================
     def nav_action_callback(self,msg):
         '''
-        function to handle keyboard buttons
+        function to handle navigator action callbacks
         '''
         action = msg.action;
         if (self.action_current<>action):
             # update actions
-            self.action_current = action;    
-            
+            self.action_current = action;
+    #==========================================================================
+    # function to turn robot around        
+    def look_around(self):
+        lookaround_time = 20
+        tick = 0.2
+        clock = 0.0
+        # cancel the current waypoint goal
+        self.move_base.cancel_all_goals()
+
+        # clear costmaps
+        self.clear_costmaps()
+        
+        # rotate 360 degrees with a small forward motion
+        cmd_vel = Twist()
+        cmd_vel.angular.z = 0.32
+        cmd_vel.linear.x = 0.02
+        
+        while clock < lookaround_time:
+            self._pub_cmd_vel.publish(cmd_vel)
+            rospy.sleep(tick)
+            clock += tick
+
+        self._pub_cmd_vel.publish(Twist())
+
+    #==========================================================================
+    # function to move robot straith given
+    # distance in meters (negative -backwards)  
+    def go_straight(self, distance):
+        # cancel the current waypoint goal
+        self.move_base.cancel_all_goals()
+        
+        # knowing that max speed is 0.16 m/s
+        moving_time = numpy.abs(distance)/0.16;
+        tick = 0.2
+        clock = 0.0
+        cmd_vel = Twist()
+        cmd_vel.angular.z = 0.0
+        cmd_vel.linear.x = 0.16*numpy.sign(distance)
+        
+        while clock < moving_time:
+            self._pub_cmd_vel.publish(cmd_vel)
+            rospy.sleep(tick)
+            clock += tick
 
 #==============================================================================
 # main function
