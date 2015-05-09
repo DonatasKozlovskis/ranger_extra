@@ -89,7 +89,7 @@ class Navigator():
         
         # Publish to RVIZ all existing markers        
         self.visualize_markers()
-        
+        goal = None;
         goal_status = None;
         goal_tries = 0; # number of times robot tried to reach goal
         time_start = rospy.Time.now()       #current time
@@ -139,7 +139,8 @@ class Navigator():
                 
             if (self.action_current==NavigatorAction.FINISH):
                 rospy.loginfo(  "action FINISH")
-                goal_finish = self.action_before != self.action_current or goal_tries>self.goal_tries_max
+                finish_waypoint = self.get_waypoint_by_index(0);
+                goal_finish = finish_waypoint != self.goal_waypoint or goal_tries>self.goal_tries_max 
                 
                 self.action_before = self.action_current
                 if (goal_finish):
