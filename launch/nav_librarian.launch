@@ -3,15 +3,17 @@
 	<arg name="map_folder" value="maps" />
 	<arg name="path_map"  value="$(find ranger_extra)/$(arg map_folder)"/>
 	<!-- time stamp for map and waypoints identification -->
-	<arg name="time_stamp" value="1431029468319458007" />
+	<arg name="time_stamp" value="1431159790140460014" />
 	<!-- file locations -->
 	<arg name="file_map" default="$(arg path_map)/map_$(arg time_stamp).yaml"/>
 	<arg name="file_waypoint" default="$(arg path_map)/waypoints_$(arg time_stamp)"/>
 	
+	<!-- load publishers for librarian gui -->
+	<include file="$(find ranger_librarian)/launch/librarian.launch"/>
 	
     <!-- Load load grid map -->
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg file_map)" />
-    	
+    
 	<!-- load node for localisation -->
 	<group ns="rtabmap">
 		<node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="log" args="" >
@@ -34,17 +36,17 @@
 			<param name="publish_tf" type="bool" value="true"/>	
 
 			<!-- Database used for localization -->
-			<param name="Rtabmap/DatabasePath" type="string" value="$(env HOME)/.ros/rtabmap.db"/>  
+			<param name="Rtabmap/DatabasePath" type="string" value="$(env HOME)/.ros/rtabmap_$(arg time_stamp).db"/>  
 						
 			<!-- RTAB-Map's parameters: do "rosrun rtabmap rtabmap params" to see the list of available parameters. -->
 			<param name="Rtabmap/LoopThr" type="string" value="0.11"/>                  <!-- default 0.11, Loop closing threshold, reject more global loop closures -->
-			<param name="Rtabmap/DetectionRate" type="string" value="2.0"/>     		<!-- Don't need to do relocation very often! Though better results if the same rate as when mapping. -->	
+			<param name="Rtabmap/DetectionRate" type="string" value="3"/>     		<!-- Don't need to do relocation very often! Though better results if the same rate as when mapping. -->	
 
 			<param name="Mem/IncrementalMemory" type="string" value="false"/>			<!-- false = Localization mode-->
+			<param name="Mem/STMSize" type="string" value="1"/>               			<!-- 1 location in short-term memory -->
 			<param name="Mem/RehearsalSimilarity" type="string" value="0.45"/>
-			<param name="Mem/RehearsedNodesKept" type="string" value="false"/>   
-			<param name="Mem/InitWMWithAllNodes" type="string" value="false"/> 			<!-- Load the full global map in RAM -->
-			<param name="RGBD/PoseScanMatching" type="string" value="false"/>  			<!-- Correct the odometry using the input laser topic using ICP-2D. -->
+			<param name="Mem/InitWMWithAllNodes" type="string" value="true"/> 			<!-- Load the full global map in RAM -->
+			<param name="RGBD/PoseScanMatching" type="string" value="false"/>  			<!-- no - Correct the odometry using the input laser topic using ICP-2D. -->
 			
 			<param name="LccIcp/Type" type="string" value="2"/>    						<!-- Loop closure transformation refining with ICP: 0=No ICP, 1=ICP 3D, 2=ICP 2D -->
 			<param name="LccIcp2/CorrespondenceRatio" type="string" value="0.7"/>
@@ -52,19 +54,14 @@
 			<param name="LccIcp2/Iterations" type="string" value="100"/>
 				
 			<param name="LccBow/Force2D" type="string" value="true"/>		
-			<param name="LccBow/MinInliers" type="string" value="5"/>
+			<param name="LccBow/MinInliers" type="string" value="3"/>
 			<param name="LccBow/InlierDistance" type="string" value="0.05"/>			<!-- 3D visual words correspondence distance -->
 			<param name="LccBow/MaxDepth" type="string" value="4.0"/>                 	<!-- 3D visual words maximum depth 0=infinity -->
 			
-			<!-- re-extract features after global loop closure -->
-			<param name="LccReextract/Activated" type="string" value="false"/>
-			<param name="LccReextract/FeatureType" type="string" value="0"/>			<!-- 0=SURF -->
-			<param name="LccReextract/MaxWords" type="string" value="0"/>           	<!-- 0 no limits -->
-
 			<param name="RGBD/AngularUpdate" type="string" value="0.01"/>             	<!-- Update map only if the robot is moving -->
 			<param name="RGBD/LinearUpdate" type="string" value="0.01"/>              	<!-- Update map only if the robot is moving -->
 			<param name="RGBD/LocalLoopDetectionSpace" type="string" value="false"/>   	<!-- Local loop closure detection (using estimated position) with locations in WM -->
-			<param name="RGBD/LocalLoopDetectionTime" type="string" value="false"/>    	<!-- Local loop closure detection with locations in STM -->
+			<param name="RGBD/LocalLoopDetectionTime" type="string" value="true"/>    	<!-- Local loop closure detection with locations in STM -->
 			<param name="RGBD/OptimizeFromGraphEnd" type="string" value="false"/>    	<!-- Optimize graph from the latest node -->
 			
 			<param name="Mem/BadSignaturesIgnored" type="string" value="false"/>      	<!-- Don't ignore bad images for 3D node creation (e.g. white walls) -->
@@ -107,8 +104,7 @@
 	
 	<include file="$(find ranger_extra)/launch/include/move_base.launch"/>
 	
-	<node pkg="ranger_extra" name="navigator"	type="navigator_librarian.py" output="screen" respawn="true">
-		<param name="file_map" value="$(arg file_map)"/>
+	<node pkg="ranger_extra" name="navigator"	type="navigator_librarian.py" output="screen" respawn="false">
 		<param name="file_waypoint" value="$(arg file_waypoint)"/>
 		<param name="fixed_frame" value="map"/>
 	</node>
