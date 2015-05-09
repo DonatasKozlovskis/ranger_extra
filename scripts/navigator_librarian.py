@@ -111,12 +111,11 @@ class Navigator():
                     self.action_before = self.action_current
                     rospy.loginfo("action STOP")
                     if (self.goal_waypoint!=None):
-                        self.move_base.wait_for_result(rospy.Duration(0.2))
+                        #self.move_base.wait_for_result(rospy.Duration(0.2))
                         self.move_base.cancel_all_goals();
-                        self.clear_costmaps();
                         
                         self.goal_waypoint = None
-                        self.goal_wp_index -= 1;
+                        self.goal_wp_index -= 2;
             # end if                         
             
             if (self.action_current==NavigatorAction.MOVE):
@@ -146,7 +145,6 @@ class Navigator():
                 if (goal_finish):
                     self.move_base.wait_for_result(rospy.Duration(0.1))
                     self.move_base.cancel_all_goals();
-                    self.clear_costmaps();
                     goal_tries = 0;
                     # create librarian goal
                     # self.goal_waypoint = self.get_waypoint_by_name("Librarian")
