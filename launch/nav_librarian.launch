@@ -3,7 +3,7 @@
 	<arg name="map_folder" value="maps" />
 	<arg name="path_map"  value="$(find ranger_extra)/$(arg map_folder)"/>
 	<!-- time stamp for map and waypoints identification -->
-	<arg name="time_stamp" value="1431159790140460014" />
+	<arg name="time_stamp" value="1431197604559381961" />
 	<!-- file locations -->
 	<arg name="file_map" default="$(arg path_map)/map_$(arg time_stamp).yaml"/>
 	<arg name="file_waypoint" default="$(arg path_map)/waypoints_$(arg time_stamp)"/>
@@ -46,7 +46,7 @@
 			<param name="Mem/STMSize" type="string" value="1"/>               			<!-- 1 location in short-term memory -->
 			<param name="Mem/RehearsalSimilarity" type="string" value="0.45"/>
 			<param name="Mem/InitWMWithAllNodes" type="string" value="true"/> 			<!-- Load the full global map in RAM -->
-			<param name="RGBD/PoseScanMatching" type="string" value="false"/>  			<!-- no - Correct the odometry using the input laser topic using ICP-2D. -->
+			<param name="RGBD/PoseScanMatching" type="string" value="true"/>  			<!-- no - Correct the odometry using the input laser topic using ICP-2D. -->
 			
 			<param name="LccIcp/Type" type="string" value="2"/>    						<!-- Loop closure transformation refining with ICP: 0=No ICP, 1=ICP 3D, 2=ICP 2D -->
 			<param name="LccIcp2/CorrespondenceRatio" type="string" value="0.7"/>

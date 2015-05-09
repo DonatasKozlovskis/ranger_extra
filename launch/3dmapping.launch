@@ -37,7 +37,7 @@
 			<param name="Mem/RehearsalSimilarity" type="string" value="0.45"/>
 			<param name="Mem/RehearsedNodesKept" type="string" value="false"/>   
 			<param name="Mem/InitWMWithAllNodes" type="string" value="false"/> 			<!-- Load the full global map in RAM -->
-			<param name="RGBD/PoseScanMatching" type="string" value="false"/>  			<!-- Correct the odometry using the input laser topic using ICP-2D. -->
+			<param name="RGBD/PoseScanMatching" type="string" value="true"/>  			<!-- Correct the odometry using the input laser topic using ICP-2D. -->
 			
 			<param name="LccIcp/Type" type="string" value="2"/>    						<!-- Loop closure transformation refining with ICP: 0=No ICP, 1=ICP 3D, 2=ICP 2D -->
 			<param name="LccIcp2/CorrespondenceRatio" type="string" value="0.7"/>
