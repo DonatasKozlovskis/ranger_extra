@@ -115,7 +115,7 @@ class Navigator():
                         self.move_base.cancel_all_goals();
                         
                         self.goal_waypoint = None
-                        self.goal_wp_index -= 2;
+                        self.goal_wp_index -= 1;
             # end if                         
             
             if (self.action_current==NavigatorAction.MOVE):
@@ -140,22 +140,20 @@ class Navigator():
             if (self.action_current==NavigatorAction.FINISH):
                 rospy.loginfo(  "action FINISH")
                 finish_waypoint = self.get_waypoint_by_index(0);
-                goal_finish = finish_waypoint != self.goal_waypoint or goal_tries>self.goal_tries_max 
+                goal_finish = finish_waypoint != self.goal_waypoint or goal_tries>self.goal_tries_max or goal_status == False
                 
                 self.action_before = self.action_current
                 if (goal_finish):
                     self.move_base.wait_for_result(rospy.Duration(0.1))
                     self.move_base.cancel_all_goals();
                     goal_tries = 0;
-                    # create librarian goal
-                    # self.goal_waypoint = self.get_waypoint_by_name("Librarian")
-                    # equivalent to
-                    self.goal_waypoint = self.get_waypoint_by_index(0);
+                    # create finish goal
+                    self.goal_waypoint = finish_waypoint;
                     goal = self.create_goal(self.goal_waypoint)
                     #set goal, start moving
                     self.move_base.send_goal(goal)
                 goal_tries += 1;
-                goal_status = self.move_base.wait_for_result(rospy.Duration(10)) 
+                goal_status = self.move_base.wait_for_result(rospy.Duration(0.5)) 
             # end if 
                 
             self.rate.sleep();
@@ -169,7 +167,7 @@ class Navigator():
         return 0
     #==========================================================================
     # get next waypoint by goal index
-    # goal wp index lie in range [2,len(waypoints)] - total len(waypoints)-1 wp
+    # goal wp index lie in range [1,len(waypoints)-1] - total len(waypoints)-1 wp
     # thus temp index is in range [0-(len(waypoints)-2)]
     # 
     def get_next_waypoint(self):
