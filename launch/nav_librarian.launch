@@ -1,12 +1,16 @@
 <!-- This launch file demonstrates the use of xtion ranger with rtabmap -->
 <launch>
+
+	<!-- time stamp for map and waypoints identification -->
+	<arg name="time_stamp" default="1431251588881133079" />
+	
+	
     <arg name="rtabmapviz" default="true" /> 
     
-	<arg name="map_folder" value="maps" />
+	<arg name="map_folder" default="maps" />
 	<arg name="path_map"  value="$(find ranger_extra)/$(arg map_folder)"/>
 	
-	<!-- time stamp for map and waypoints identification -->
-	<arg name="time_stamp" value="1431251588881133079" />
+
 	<!-- file locations -->
 	<arg name="file_map" default="$(arg path_map)/map_$(arg time_stamp).yaml"/>
 	<arg name="file_waypoint" default="$(arg path_map)/waypoints_$(arg time_stamp)"/>
@@ -100,7 +104,6 @@
 			<remap from="rgb/camera_info" 	to="/camera/depth_registered/camera_info"/>
 			<remap from="odom" to="/odom"/>
 		</node>
-
 	</group>
     
 	

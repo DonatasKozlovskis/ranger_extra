@@ -20,5 +20,7 @@
   <run_depend>roslaunch</run_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>tf</run_depend>
+  <run_depend>depthimage_to_laserscan</run_depend>
+  <run_depend>map_server</run_depend>
 
 </package>
