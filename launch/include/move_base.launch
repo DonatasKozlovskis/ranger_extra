@@ -27,5 +27,6 @@
     <remap from="cmd_vel" to="/cmd_vel"/>
     <remap from="odom" to="$(arg odom_topic)"/>
     <remap from="scan" to="$(arg laser_topic)"/>
+    <remap from="static_map" to="/rtabmap/grid_map_assembler/get_map"/>
   </node>
 </launch>
