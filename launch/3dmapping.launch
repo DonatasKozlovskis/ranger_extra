@@ -94,7 +94,7 @@
     
     
 	<!-- include map control to add waypoints-->
-	<include file="$(find ranger_extra)/launch/map_control.launch"/>
+	<include file="$(find ranger_extra)/launch/include/map_control.launch"/>
 	
 	<!-- include gmapping to create occupancy grid map if not using rtabmap grid assembler
 	<include file="$(find ranger_ros)/launch/create_map.launch"/>
