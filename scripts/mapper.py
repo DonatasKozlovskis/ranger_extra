@@ -27,6 +27,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 # ROS messages
 from std_srvs.srv import Empty
 from std_msgs.msg import Header
+from nav_msgs.msg import OccupancyGrid
 
 from visualization_msgs.msg import Marker
 
@@ -44,6 +45,7 @@ class Mapper():
         '''
         constructor
         '''
+        rospy.on_shutdown(self.save_all)
         # save time stamp of starting node 
         self.start_time = rospy.Time.now();        
         
@@ -69,9 +71,13 @@ class Mapper():
         self.waypoints = [] # list for saving all waypoints in given dict structure
         self.wp_fieldnames = ('num_id', 'wp_name', 'x', 'y', 'z', 'qx', 'qy', 'qz', 'qw')                            
         self.wp_file_has_header = False
+        
+        self.grid_map_ = ''
           
         # Subscriber for keyboards
         rospy.Subscriber("mapper_control", Header, self.control_callback)
+        # subscriber for grid map        
+        #rospy.Subscriber("map", OccupancyGrid, self.grid_map_callback)
         
         # Publisher of visualization markers for waypoints
         self.marker_pub = rospy.Publisher("visualization_marker", Marker, queue_size=5)
@@ -121,15 +127,20 @@ class Mapper():
                 self.tf = (trans, rot)
         
             self.rate.sleep()
-            
-        rospy.loginfo("Saving waypoints to file before exit");
-        self.save_waypoints();
-        rospy.loginfo("Saving map and switching to localisation mode");
-        self.save_map();
+        
+        #do some other stuff
         
         return 0
+    #==========================================================================
+    def save_all(self):
+        # just call one more time
+        rospy.loginfo("Saving waypoints to file");
+        self.save_waypoints();
+        rospy.loginfo("Saving map...");
+        self.save_map();
+        rospy.loginfo("And switching to localisation mode");
+        self.switch_mode();
 
-    
     #==========================================================================
     def control_callback(self, msg):
         '''
@@ -149,11 +160,14 @@ class Mapper():
             self.delete_waypoint(frame_name);
             
         if command_key == 3:
-            rospy.loginfo("Saving waypoints to file");
-            self.save_waypoints();
-            rospy.loginfo("Saving map and switching to localisation mode");
-            self.save_map();
+            self.save_all();
 
+    #==========================================================================
+#    def grid_map_callback(self, msg):
+#        '''
+#        function to store grid map
+#        '''
+#        self.grid_map_ = msg;
     #==========================================================================        
     def add_waypoint(self, frame_name):
         '''
@@ -295,24 +309,25 @@ class Mapper():
         
         return marker
 
-    #==========================================================================        
+    #==========================================================================    
+    def switch_mode(self):
+        # Put rtabmap in localization mode so it does not continue to update map after we save it
+        rtabmap_localization_mode = rospy.ServiceProxy('/rtabmap/set_mode_localization',Empty())
+        try:          
+            rtabmap_localization_mode()
+        except Exception as ex:
+            rospy.logwarn("rtabmap switch to localization crashed: %s" % str(ex))
+    #==========================================================================    
     def save_map(self):
         '''
         function to save map
-        '''
-        
-        # Put rtabmap in localization mode so it does not continue to update map after we save it
-        rtabmap_localization_mode = rospy.ServiceProxy('/rtabmap/set_mode_localization',Empty())
-        
+        '''        
         file_name_map_stamped = self.file_name_map + "_" + str(self.start_time);
 
         try:
             # save map file using map_server
             sts = subprocess.call('cd "%s"; rosrun map_server map_saver -f "%s"' % (self.path_map, file_name_map_stamped), shell=True)
-            rospy.loginfo( "Save Map returned sts %d" % sts)
-            
-            rtabmap_localization_mode()
-
+            rospy.loginfo( "Save Map returned: %s" %str(sts))
         except Exception as ex:
             rospy.logwarn("Save map crashed: %s" % str(ex))
         
@@ -358,9 +373,12 @@ if __name__=="__main__":
     finally:
         rospy.loginfo("Mapper Finished")
         
-        rtab_db_name_stamped = "/home/st13nod/.ros/rtabmap_" + str(mapper.start_time) + ".db";
+        #copy db rtabmap db
+        rtab_db_name_stamped = mapper.path_map + "/rtabmap_" + str(mapper.start_time) + ".db";
+        # give rtab a chance to save db
+        rospy.sleep(3)
         #copy db
-        shutil.copy("/home/st13nod/.ros/rtabmap.db", rtab_db_name_stamped)
+        shutil.copy(mapper.path_map + "/rtabmap.db", rtab_db_name_stamped)
         sys.exit(sts)
 
 
