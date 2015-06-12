@@ -1,0 +1,56 @@
+<!-- -->
+<launch>
+	<!-- 
+	   BEFORE:
+	   Bringup ranger
+	   $ roslaunch ranger_ros bringup.launch
+	   
+	   Visualization:
+	   $ roslaunch ranger_description display.launch
+	   
+	   RGB-D sensor:
+	   $ roslaunch ranger_ros 3dsensor.launch
+	   
+	   Mapping:
+	   $ roslaunch rtabmap_ros demo_mapping.launch
+	   
+	   Navigation:
+	   $ roslaunch rtabmap_ros demo_nav.launch
+	-->
+	
+	<!-- time stamp for map and waypoints identification -->
+	<arg name="time_stamp" default="1434121057600673913" />
+	    
+	<arg name="map_folder" default="maps" />
+	
+	<!-- file locations -->
+	<arg name="path_map"  value="$(find ranger_extra)/$(arg map_folder)"/>
+	<arg name="file_map" 		value="$(arg path_map)/map_$(arg time_stamp).yaml"/>
+	<arg name="file_waypoint" 	value="$(arg path_map)/waypoints_$(arg time_stamp)"/>
+	
+	<!-- load publishers for librarian gui -->
+	<include file="$(find ranger_librarian)/launch/librarian.launch"/>
+	
+    <!-- Load load grid map -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg file_map)" />
+
+
+	<!-- Navigation stuff -->
+	
+	<node pkg="ranger_extra" name="navigator"	type="navigator_librarian.py" output="screen" respawn="false">
+		<param name="file_waypoint" value="$(arg file_waypoint)"/>
+		<param name="fixed_frame" value="map"/>
+	</node>
+	
+	<!-- Mapping -->
+	<include file="$(find ranger_extra)/launch/rtab_mapping.launch">
+		<arg name="path_map"  		default="$(find ranger_extra)/maps"/>
+		<arg name="database_path"     default="$(arg path_map)/rtabmap_$(arg time_stamp).db"/>
+		<arg name="localization"      default="true"/>
+		<arg name="args"              default=""/>
+
+		<arg name="rtabmapviz" default="true" /> 
+	</include>
+	
+
+</launch>

@@ -1,0 +1,27 @@
+<!-- -->
+<launch>
+	<!-- 
+	   BEFORE:
+	   Bringup ranger
+	   $ roslaunch ranger_ros bringup.launch
+	   
+	   Visualization:
+	   $ roslaunch ranger_description display.launch
+	   
+	   RGB-D sensor:
+	   $ roslaunch ranger_ros 3dsensor.launch
+	   
+	   Mapping:
+	   $ roslaunch rtabmap_ros demo_mapping.launch
+	-->
+
+	
+	<!-- include map control to add waypoints-->
+	<include file="$(find ranger_extra)/launch/include/map_control.launch"/>
+	
+	<!-- Mapping -->
+	<include file="$(find ranger_extra)/launch/rtab_mapping.launch">
+		<arg name="rtabmapviz" default="true" /> 
+	</include>
+	
+</launch>

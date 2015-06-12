@@ -4,6 +4,7 @@
 	<arg name="map_folder" value="maps" />
 	<arg name="path_map"  value="$(find ranger_extra)/$(arg map_folder)"/>
 	
+	<arg name="depth_image" default="/camera/depth_registered/image_raw"/>
 
 	<!-- Visual SLAM -->
 	<!-- args: "delete_db_on_start" and "udebug" -->
@@ -20,7 +21,7 @@
 			<remap from="scan" to="/scan"/>
 
 			<remap from="rgb/image" 		to="/camera/rgb/image_rect_color"/>
-			<remap from="depth/image" 		to="/camera/depth_registered/image_raw"/>
+			<remap from="depth/image" 		to="$(arg depth_image)"/>
 			<remap from="rgb/camera_info" 	to="/camera/rgb/camera_info"/>
 			
 			<!-- Used for synchronization of the input topics above in hz -->
@@ -52,7 +53,7 @@
 			<param name="RGBD/AngularUpdate" type="string" value="0.01"/>             	<!-- Update map only if the robot is moving -->
 			<param name="RGBD/LinearUpdate" type="string" value="0.01"/>              	<!-- Update map only if the robot is moving -->
 			<param name="RGBD/LocalLoopDetectionSpace" type="string" value="false"/>   	<!-- Local loop closure detection (using estimated position) with locations in WM -->
-			<param name="RGBD/LocalLoopDetectionTime" type="string" value="true"/>    	<!-- Local loop closure detection with locations in STM -->
+			<param name="RGBD/LocalLoopDetectionTime" type="string" value="false"/>    	<!-- Local loop closure detection with locations in STM -->
 			<param name="RGBD/OptimizeFromGraphEnd" type="string" value="false"/>    	<!-- Optimize graph from the latest node -->
 			
 			<param name="Mem/BadSignaturesIgnored" type="string" value="false"/>      	<!-- Don't ignore bad images for 3D node creation (e.g. white walls) -->
@@ -67,7 +68,7 @@
 	        <param name="Kp/MaxDepth" type="string" value=" 4.0"/>						<!-- Maximum depth of the features is 4 meters -->
           	<param name="Kp/RoiRatios" type="string" value="0.0 0.0 0.0 0.0"/>			<!-- Filter parts percentages of the image -->
  
- 			<param name="SURF/HessianThreshold" type="string" value="60"/>				<!-- Extract more SURF features -->
+ 			<param name="SURF/HessianThreshold" type="string" value="50"/>				<!-- Extract more SURF features -->
 	
 		</node>
 		
@@ -85,7 +86,7 @@
 			<param name="queue_size" type="int" value="30"/>
 
 			<remap from="rgb/image" 		to="/camera/rgb/image_rect_color"/>
-			<remap from="depth/image" 		to="/camera/depth_registered/image_raw"/>
+			<remap from="depth/image" 		to="$(arg depth_image)"/>
 			<remap from="rgb/camera_info" 	to="/camera/depth_registered/camera_info"/>
 			<remap from="odom" to="/odom"/>
 		</node>
