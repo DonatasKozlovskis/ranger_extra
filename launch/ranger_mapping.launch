@@ -12,7 +12,7 @@
 	   $ roslaunch ranger_ros 3dsensor.launch
 	   
 	   Mapping:
-	   $ roslaunch rtabmap_ros demo_mapping.launch
+	   $ roslaunch rtabmap_ros ranger_mapping.launch
 	-->
 
 	
@@ -20,7 +20,7 @@
 	<include file="$(find ranger_extra)/launch/include/map_control.launch"/>
 	
 	<!-- Mapping -->
-	<include file="$(find ranger_extra)/launch/rtab_mapping.launch">
+	<include file="$(find ranger_extra)/launch/rtab_slam.launch">
 		<arg name="rtabmapviz" default="true" /> 
 	</include>
 	

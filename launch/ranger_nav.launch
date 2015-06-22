@@ -12,10 +12,10 @@
 	   $ roslaunch ranger_ros 3dsensor.launch
 	   
 	   Mapping:
-	   $ roslaunch rtabmap_ros demo_mapping.launch
+	   $ roslaunch rtabmap_ros ranger_mapping.launch
 	   
 	   Navigation:
-	   $ roslaunch rtabmap_ros demo_nav.launch
+	   $ roslaunch rtabmap_ros ranger_nav.launch
 	-->
 	
 	<!-- time stamp for map and waypoints identification -->
@@ -43,7 +43,7 @@
 	</node>
 	
 	<!-- Mapping -->
-	<include file="$(find ranger_extra)/launch/rtab_mapping.launch">
+	<include file="$(find ranger_extra)/launch/rtab_slam.launch">
 		<arg name="path_map"  		default="$(find ranger_extra)/maps"/>
 		<arg name="database_path"     default="$(arg path_map)/rtabmap_$(arg time_stamp).db"/>
 		<arg name="localization"      default="true"/>
