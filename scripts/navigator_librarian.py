@@ -27,7 +27,7 @@ from ranger_librarian.msg import NavigatorAction
 
 ###############################################
 #
-#   Class for the Mapper.py ROS node
+#   Class for the navigator_librarian ROS node
 class Navigator():
     #
     # Constructor
@@ -428,7 +428,7 @@ class Navigator():
 if __name__=="__main__":
     
     sts = 0
-    rospy.loginfo("Running Navigator")
+    rospy.loginfo("Running Navigator-librarian")
     try:
         # ROS initialization
         rospy.init_node("navigator_librarian")
@@ -461,10 +461,10 @@ if __name__=="__main__":
             sts = navigator.run()
         
     except Exception as ex:
-        rospy.loginfo("Navigator Crashed with exception: %s" % str(ex))
+        rospy.loginfo("Navigator crashed with exception: %s" % str(ex))
         sts = -1
     finally:
-        rospy.loginfo("Navigator Finished")
+        rospy.loginfo("Navigator finished")
         sys.exit(sts)
 
 
